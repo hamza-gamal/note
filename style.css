@@ -1139,11 +1139,63 @@ html[dir="rtl"] .toggle-pwd-visibility-btn {
   box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
-/* Locked Card State in Grid */
-.note-card.is-locked .note-card-text {
-  filter: blur(5px);
-  user-select: none;
-  opacity: 0.5;
+/* Locked Card State in Grid - Completely Concealed */
+.note-card.is-locked {
+  background: linear-gradient(145deg, var(--card-bg) 0%, rgba(20, 23, 28, 0.95) 100%);
+  border: 1px dashed var(--border-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 190px;
+}
+
+.note-card.is-locked:hover {
+  border-color: var(--primary);
+  border-style: solid;
+}
+
+.locked-card-secret {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 12px;
+  gap: 8px;
+}
+
+.locked-secret-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--primary-glow);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  margin-bottom: 4px;
+  transition: transform 0.25s ease;
+}
+
+.note-card.is-locked:hover .locked-secret-icon {
+  transform: scale(1.12);
+}
+
+.locked-secret-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.locked-secret-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+
+.locked-footer {
+  border-top: 1px solid var(--border-light);
+  padding-top: 10px;
 }
 
 .note-locked-badge {

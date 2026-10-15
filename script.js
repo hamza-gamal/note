@@ -66,6 +66,8 @@ const TRANSLATIONS = {
     lockedFolder: "Passwords",
     lockedNotesTitle: "Password Protected Notes",
     lockedNotesSubtitle: "Notes secured with personal passwords.",
+    lockedNoteHiddenTitle: "Locked Note",
+    clickToUnlock: "Click to unlock and view content",
     langName: "English"
   },
   ar: {
@@ -128,6 +130,8 @@ const TRANSLATIONS = {
     lockedFolder: "كلمات المرور",
     lockedNotesTitle: "الملاحظات المحمية بكلمة سر",
     lockedNotesSubtitle: "ملاحظاتك الخاصة والمشفرة بكلمات مرور شخصية.",
+    lockedNoteHiddenTitle: "ملاحظة مغلقة ومحمية",
+    clickToUnlock: "اضغط لإدخال كلمة السر وعرض الملاحظة",
     langName: "العربية"
   }
 };
@@ -789,36 +793,47 @@ class NoteApp {
 
     if (isLocked) {
       card.classList.add("is-locked");
-    }
-
-    const previewContent = isLocked
-      ? "••••••••••••••••••••••••••••••••••••••••••••••••••••••••"
-      : (note.content || "");
-
-    card.innerHTML = `
-      <div class="note-card-header">
-        <div class="note-title-wrap">
-          <h3 class="note-card-title">${this.escapeHtml(note.title || "Untitled")}</h3>
-          ${note.category ? `<span class="note-badge">${note.category}</span>` : ""}
-          ${hasPassword ? `<span class="note-locked-badge"><i class="fa-solid fa-lock"></i> ${this.t("protectedBadge")}</span>` : ""}
+      card.innerHTML = `
+        <div class="locked-card-secret">
+          <div class="locked-secret-icon">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+          <h3 class="locked-secret-title">${this.t("lockedNoteHiddenTitle")}</h3>
+          <p class="locked-secret-subtitle">${this.t("clickToUnlock")}</p>
         </div>
-        <div class="note-actions-inline">
-          <button class="note-star-btn ${isStarred ? "starred" : ""}" title="Star" data-action="star">
-            <i class="${starIconClass}"></i>
-          </button>
+        <div class="note-card-footer locked-footer">
+          <span class="note-locked-badge"><i class="fa-solid fa-shield-halved"></i> ${this.t("protectedBadge")}</span>
           <button class="note-menu-btn" title="Options" data-action="menu">
             <i class="fa-solid fa-ellipsis-vertical"></i>
           </button>
         </div>
-      </div>
-      <div class="note-card-body">
-        <p class="note-card-text">${this.escapeHtml(previewContent)}</p>
-      </div>
-      <div class="note-card-footer">
-        <span>${dateString}</span>
-        ${note.pinned ? `<span title="Pinned"><i class="fa-solid fa-thumbtack" style="color:var(--primary);"></i></span>` : ""}
-      </div>
-    `;
+      `;
+    } else {
+      card.innerHTML = `
+        <div class="note-card-header">
+          <div class="note-title-wrap">
+            <h3 class="note-card-title">${this.escapeHtml(note.title || "Untitled")}</h3>
+            ${note.category ? `<span class="note-badge">${note.category}</span>` : ""}
+            ${hasPassword ? `<span class="note-locked-badge"><i class="fa-solid fa-lock-open"></i> ${this.t("noteUnlocked")}</span>` : ""}
+          </div>
+          <div class="note-actions-inline">
+            <button class="note-star-btn ${isStarred ? "starred" : ""}" title="Star" data-action="star">
+              <i class="${starIconClass}"></i>
+            </button>
+            <button class="note-menu-btn" title="Options" data-action="menu">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          </div>
+        </div>
+        <div class="note-card-body">
+          <p class="note-card-text">${this.escapeHtml(note.content || "")}</p>
+        </div>
+        <div class="note-card-footer">
+          <span>${dateString}</span>
+          ${note.pinned ? `<span title="Pinned"><i class="fa-solid fa-thumbtack" style="color:var(--primary);"></i></span>` : ""}
+        </div>
+      `;
+    }
 
     // Click on card opens editor (or unlock modal if password-protected)
     card.addEventListener("click", (e) => {
