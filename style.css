@@ -151,6 +151,14 @@ html[lang="ar"], body[data-lang="ar"] {
   display: flex;
   align-items: center;
   gap: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+
+.brand:hover {
+  opacity: 0.92;
 }
 
 .brand-logo-img {
