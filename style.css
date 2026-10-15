@@ -8,32 +8,33 @@
   --font-en: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-ar: 'Cairo', system-ui, -apple-system, sans-serif;
 
-  /* Color System - Dark Default */
-  --bg-main: #0b0f19;
-  --bg-sidebar: #111827;
-  --bg-topbar: rgba(17, 24, 39, 0.85);
-  --card-bg: #1f2937;
-  --card-hover: #283548;
-  --border-color: #374151;
-  --border-light: #2d3748;
+  /* Color System - Dark Default (Clean Black, Graphite & Slate) */
+  --bg-main: #0d0f12;
+  --bg-sidebar: #14171c;
+  --bg-topbar: rgba(20, 23, 28, 0.88);
+  --card-bg: #1a1e24;
+  --card-hover: #222730;
+  --border-color: #2a303c;
+  --border-light: #20252e;
 
-  --text-main: #f9fafb;
+  --text-main: #f3f4f6;
   --text-muted: #9ca3af;
   --text-subtle: #6b7280;
 
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --primary-glow: rgba(59, 130, 246, 0.25);
+  /* Primary Accent: Sophisticated Casual Red */
+  --primary: #e11d48;
+  --primary-hover: #be123c;
+  --primary-glow: rgba(225, 29, 72, 0.16);
 
-  --accent-star: #fbbf24;
-  --accent-pin: #f43f5e;
+  --accent-star: #eab308;
+  --accent-pin: #e11d48;
   --danger: #ef4444;
   --danger-hover: #dc2626;
-  --success: #10b981;
+  --success: #22c55e;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.6);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -41,30 +42,30 @@
 
   --sidebar-width: 270px;
   --topbar-height: 70px;
-  --transition: all 0.22s ease-in-out;
+  --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Light Theme Variables */
+/* Light Theme Variables (Clean White, Soft Light Greys, Charcoal) */
 body[data-theme="light"] {
-  --bg-main: #f3f4f6;
+  --bg-main: #f8fafc;
   --bg-sidebar: #ffffff;
-  --bg-topbar: rgba(255, 255, 255, 0.88);
+  --bg-topbar: rgba(255, 255, 255, 0.9);
   --card-bg: #ffffff;
-  --card-hover: #f9fafb;
-  --border-color: #e5e7eb;
-  --border-light: #edf2f7;
+  --card-hover: #f1f5f9;
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
 
-  --text-main: #111827;
-  --text-muted: #4b5563;
-  --text-subtle: #9ca3af;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-subtle: #94a3b8;
 
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-glow: rgba(37, 99, 235, 0.18);
+  --primary: #e11d48;
+  --primary-hover: #be123c;
+  --primary-glow: rgba(225, 29, 72, 0.12);
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 20px -3px rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
 }
 
 /* Custom Theme-aware Scrollbars */
