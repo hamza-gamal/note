@@ -68,6 +68,7 @@ const TRANSLATIONS = {
     lockedNotesSubtitle: "Notes secured with personal passwords.",
     lockedNoteHiddenTitle: "Locked Note",
     clickToUnlock: "Click to unlock and view content",
+    protectedBadge: "Protected",
     langName: "English"
   },
   ar: {
@@ -132,6 +133,7 @@ const TRANSLATIONS = {
     lockedNotesSubtitle: "ملاحظاتك الخاصة والمشفرة بكلمات مرور شخصية.",
     lockedNoteHiddenTitle: "ملاحظة مغلقة ومحمية",
     clickToUnlock: "اضغط لإدخال كلمة السر وعرض الملاحظة",
+    protectedBadge: "محمية",
     langName: "العربية"
   }
 };
@@ -408,7 +410,7 @@ class NoteApp {
         const targetId = this.activeContextMenuNoteId;
         this.closeContextMenu();
         if (note && note.password && !note._unlocked) {
-          this.openUnlockModal(targetId);
+          this.openUnlockModal(targetId, "edit");
         } else {
           this.openEditor(targetId);
         }
@@ -418,11 +420,17 @@ class NoteApp {
     this.menuCopy.addEventListener("click", () => {
       if (this.activeContextMenuNoteId) {
         const note = this.notes.find(n => n.id === this.activeContextMenuNoteId);
+        const targetId = this.activeContextMenuNoteId;
+        this.closeContextMenu();
         if (note) {
-          const textToCopy = `${note.title}\n\n${note.content}`;
-          navigator.clipboard.writeText(textToCopy).then(() => {
-            this.showToast(this.t("copiedSuccess"));
-          });
+          if (note.password && !note._unlocked) {
+            this.openUnlockModal(targetId, "copy");
+          } else {
+            const textToCopy = `${note.title}\n\n${note.content}`;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+              this.showToast(this.t("copiedSuccess"));
+            });
+          }
         }
       }
     });
@@ -430,8 +438,14 @@ class NoteApp {
     this.menuDownload.addEventListener("click", () => {
       if (this.activeContextMenuNoteId) {
         const note = this.notes.find(n => n.id === this.activeContextMenuNoteId);
+        const targetId = this.activeContextMenuNoteId;
+        this.closeContextMenu();
         if (note) {
-          this.downloadNoteTxt(note);
+          if (note.password && !note._unlocked) {
+            this.openUnlockModal(targetId, "download");
+          } else {
+            this.downloadNoteTxt(note);
+          }
         }
       }
     });
@@ -1106,8 +1120,9 @@ class NoteApp {
   }
 
   // --- Password Unlock System ---
-  openUnlockModal(noteId) {
+  openUnlockModal(noteId, action = "edit") {
     this.pendingUnlockNoteId = noteId;
+    this.pendingUnlockAction = action; // 'edit', 'copy', 'download'
     this.unlockPasswordInput.value = "";
     this.unlockModal.classList.add("active");
     setTimeout(() => this.unlockPasswordInput.focus(), 150);
@@ -1116,6 +1131,7 @@ class NoteApp {
   closeUnlockModal() {
     this.unlockModal.classList.remove("active");
     this.pendingUnlockNoteId = null;
+    this.pendingUnlockAction = null;
   }
 
   handleUnlockSubmit() {
@@ -1129,12 +1145,24 @@ class NoteApp {
 
     const entered = this.unlockPasswordInput.value.trim();
     if (entered === note.password) {
-      note._unlocked = true;
       const targetNoteId = this.pendingUnlockNoteId;
+      const action = this.pendingUnlockAction || "edit";
       this.closeUnlockModal();
-      this.render();
-      this.showToast(this.t("noteUnlocked"));
-      this.openEditor(targetNoteId);
+
+      if (action === "copy") {
+        const textToCopy = `${note.title}\n\n${note.content}`;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          this.showToast(this.t("copiedSuccess"));
+        });
+      } else if (action === "download") {
+        this.downloadNoteTxt(note);
+      } else {
+        // Edit action
+        note._unlocked = true;
+        this.render();
+        this.showToast(this.t("noteUnlocked"));
+        this.openEditor(targetNoteId);
+      }
     } else {
       this.showToast(this.t("wrongPassword"));
       this.unlockPasswordInput.value = "";
