@@ -269,6 +269,7 @@ class NoteApp {
     this.toastIcon = document.getElementById("toastIcon");
     this.toastTimer = null;
     this.lastDeletedNote = null;
+    this.lastDeletedCategory = null;
 
     // Import / Export
     this.exportDataBtn = document.getElementById("exportDataBtn");
@@ -596,6 +597,21 @@ class NoteApp {
   }
 
   deleteCategory(catName) {
+    const index = this.categories.indexOf(catName);
+    if (index === -1) return;
+
+    // Track notes that were originally in this category to restore them accurately if undone
+    const affectedNotes = this.notes
+      .filter(n => n.category === catName)
+      .map(n => n.id);
+
+    this.lastDeletedCategory = {
+      name: catName,
+      index: index,
+      affectedNotes: affectedNotes
+    };
+    this.lastDeletedNote = null; // Clear note undo to avoid conflict
+
     this.categories = this.categories.filter(c => c !== catName);
     // Re-assign notes to "General" or first category
     const fallbackCategory = this.categories[0] || "General";
@@ -613,7 +629,7 @@ class NoteApp {
     this.saveNotes();
     this.render();
     this.updateModalCategories();
-    this.showToast(`Folder "${catName}" removed`);
+    this.showToast(`Folder "${catName}" deleted`, true);
   }
 
   updateModalCategories() {
@@ -861,21 +877,52 @@ class NoteApp {
   }
 
   undoDelete() {
-    if (!this.lastDeletedNote) return;
-    const { note, index } = this.lastDeletedNote;
+    // 1. If what was deleted is a folder
+    if (this.lastDeletedCategory) {
+      const { name, index, affectedNotes } = this.lastDeletedCategory;
 
-    // Restore note at its previous position
-    if (index >= 0 && index <= this.notes.length) {
-      this.notes.splice(index, 0, note);
-    } else {
-      this.notes.unshift(note);
+      if (index >= 0 && index <= this.categories.length) {
+        this.categories.splice(index, 0, name);
+      } else {
+        this.categories.push(name);
+      }
+
+      // Restore original folder assignment on affected notes
+      if (Array.isArray(affectedNotes)) {
+        this.notes.forEach(n => {
+          if (affectedNotes.includes(n.id)) {
+            n.category = name;
+          }
+        });
+      }
+
+      this.lastDeletedCategory = null;
+      this.saveCategories();
+      this.saveNotes();
+      this.render();
+      this.updateModalCategories();
+      this.hideToast();
+      this.showToast(this.t("restoredSuccess"), false);
+      return;
     }
 
-    this.lastDeletedNote = null;
-    this.saveNotes();
-    this.render();
-    this.hideToast();
-    this.showToast(this.t("restoredSuccess"), false);
+    // 2. If what was deleted is a note
+    if (this.lastDeletedNote) {
+      const { note, index } = this.lastDeletedNote;
+
+      // Restore note at its previous position
+      if (index >= 0 && index <= this.notes.length) {
+        this.notes.splice(index, 0, note);
+      } else {
+        this.notes.unshift(note);
+      }
+
+      this.lastDeletedNote = null;
+      this.saveNotes();
+      this.render();
+      this.hideToast();
+      this.showToast(this.t("restoredSuccess"), false);
+    }
   }
 
   downloadNoteTxt(note) {
