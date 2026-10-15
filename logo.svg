@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Dark Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181c24"/>
+      <stop offset="100%" stop-color="#0a0c10"/>
+    </linearGradient>
+
+    <!-- Accent Red Gradient -->
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="50%" stop-color="#e11d48"/>
+      <stop offset="100%" stop-color="#9f1239"/>
+    </linearGradient>
+
+    <!-- Fold Corner Shadow -->
+    <linearGradient id="foldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#be123c"/>
+      <stop offset="100%" stop-color="#4c0519"/>
+    </linearGradient>
+
+    <!-- Glowing Drop Shadow -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#e11d48" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  <rect width="510" height="510" x="1" y="1" rx="127" fill="none" stroke="#2a303c" stroke-width="2"/>
+
+  <!-- Back Stacked Note Page (depth effect) -->
+  <rect x="110" y="90" width="280" height="330" rx="24" fill="#222834" opacity="0.6" transform="rotate(-6 250 255)"/>
+
+  <!-- Main Note Body with fold -->
+  <g filter="url(#glow)">
+    <!-- Main page background -->
+    <path d="M140 100 C140 86.745 150.745 76 164 76 L320 76 L400 156 L400 412 C400 425.255 389.255 436 376 436 L164 436 C150.745 436 140 425.255 140 412 Z" fill="#1e232d" stroke="#2f3746" stroke-width="3"/>
+    
+    <!-- Top-Right Folded Corner -->
+    <path d="M320 76 L320 140 C320 148.837 327.163 156 336 156 L400 156 Z" fill="url(#foldGrad)"/>
+    <path d="M320 76 L400 156 L320 156 Z" fill="url(#redGrad)" opacity="0.95"/>
+
+    <!-- Red Accent Left Bookmark Strip -->
+    <rect x="140" y="110" width="8" height="180" rx="4" fill="url(#redGrad)"/>
+
+    <!-- Elegant Note Content Lines -->
+    <rect x="180" y="180" width="130" height="12" rx="6" fill="#f3f4f6"/>
+    <rect x="180" y="215" width="180" height="10" rx="5" fill="#6b7280"/>
+    <rect x="180" y="245" width="160" height="10" rx="5" fill="#4b5563"/>
+    <rect x="180" y="275" width="130" height="10" rx="5" fill="#4b5563"/>
+
+    <!-- Subtle Pencil / Pen Icon Nib in bottom right corner -->
+    <g transform="translate(260, 310) rotate(-45)">
+      <rect x="0" y="0" width="22" height="70" rx="6" fill="url(#redGrad)"/>
+      <polygon points="0,70 22,70 11,92" fill="#f3f4f6"/>
+      <circle cx="11" cy="91" r="2.5" fill="#0d0f12"/>
+    </g>
+  </g>
+</svg>

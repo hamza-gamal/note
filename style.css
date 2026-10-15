@@ -153,6 +153,19 @@ html[lang="ar"], body[data-lang="ar"] {
   gap: 12px;
 }
 
+.brand-logo-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(225, 29, 72, 0.35));
+  transition: transform 0.2s ease;
+}
+
+.brand-logo-img:hover {
+  transform: scale(1.08) rotate(-3deg);
+}
+
 .brand-icon {
   font-size: 1.5rem;
   color: var(--primary);
