@@ -52,6 +52,15 @@ const TRANSLATIONS = {
     confirmDeleteCategory: "Delete folder '{cat}'? Notes in this folder will be moved to General.",
     categoryExists: "This folder already exists!",
     categoryNameEmpty: "Folder name cannot be empty.",
+    passwordLabel: "Password",
+    passwordPlaceholder: "Optional password...",
+    lockedNoteTitle: "Protected Note",
+    lockedNoteDesc: "Enter the password to view and edit this note.",
+    unlockPlaceholder: "Enter password...",
+    unlockBtn: "Unlock",
+    wrongPassword: "Incorrect password! Try again.",
+    noteUnlocked: "Note unlocked successfully!",
+    protectedBadge: "Locked",
     langName: "English"
   },
   ar: {
@@ -100,6 +109,15 @@ const TRANSLATIONS = {
     confirmDeleteCategory: "هل تريد بالتأكيد حذف المجلد '{cat}'؟ سيتم نقل ملاحظاته إلى عام (General).",
     categoryExists: "هذا المجلد موجود بالفعل!",
     categoryNameEmpty: "لا يمكن أن يكون اسم المجلد فارغاً.",
+    passwordLabel: "كلمة المرور",
+    passwordPlaceholder: "اختياري...",
+    lockedNoteTitle: "ملاحظة محمية بكلمة سر",
+    lockedNoteDesc: "أدخل كلمة المرور لعرض وتعديل هذه الملاحظة.",
+    unlockPlaceholder: "أدخل كلمة المرور...",
+    unlockBtn: "فتح الملاحظة",
+    wrongPassword: "كلمة المرور غير صحيحة! حاول مجدداً.",
+    noteUnlocked: "تم فتح الملاحظة بنجاح!",
+    protectedBadge: "محمية",
     langName: "العربية"
   },
   zh: {
@@ -460,6 +478,15 @@ class NoteApp {
     this.colorDots = document.querySelectorAll(".color-dot");
     this.charCount = document.getElementById("charCount");
     this.wordCount = document.getElementById("wordCount");
+    this.notePasswordInput = document.getElementById("notePasswordInput");
+    this.togglePwdVisibilityBtn = document.getElementById("togglePwdVisibilityBtn");
+
+    // Unlock Modal
+    this.unlockModal = document.getElementById("unlockModal");
+    this.unlockForm = document.getElementById("unlockForm");
+    this.unlockPasswordInput = document.getElementById("unlockPasswordInput");
+    this.unlockCancelBtn = document.getElementById("unlockCancelBtn");
+    this.pendingUnlockNoteId = null;
 
     // Context Menu
     this.noteMenu = document.getElementById("noteMenu");
@@ -570,6 +597,20 @@ class NoteApp {
 
     // Character & Word Counter
     this.noteContentInput.addEventListener("input", () => this.updateTextStats());
+
+    // Password Visibility Toggle in Editor
+    this.togglePwdVisibilityBtn.addEventListener("click", () => {
+      const isPwd = this.notePasswordInput.type === "password";
+      this.notePasswordInput.type = isPwd ? "text" : "password";
+      this.togglePwdVisibilityBtn.querySelector("i").className = isPwd ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
+    });
+
+    // Unlock Modal Events
+    this.unlockCancelBtn.addEventListener("click", () => this.closeUnlockModal());
+    this.unlockForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.handleUnlockSubmit();
+    });
 
     // Context Menu Actions
     this.menuEdit.addEventListener("click", () => {
@@ -899,12 +940,24 @@ class NoteApp {
 
     const isStarred = note.starred;
     const starIconClass = isStarred ? "fa-solid fa-star starred" : "fa-regular fa-star";
+    const hasPassword = Boolean(note.password);
+    const isUnlocked = Boolean(note._unlocked);
+    const isLocked = hasPassword && !isUnlocked;
+
+    if (isLocked) {
+      card.classList.add("is-locked");
+    }
+
+    const previewContent = isLocked
+      ? "••••••••••••••••••••••••••••••••••••••••••••••••••••••••"
+      : (note.content || "");
 
     card.innerHTML = `
       <div class="note-card-header">
         <div class="note-title-wrap">
           <h3 class="note-card-title">${this.escapeHtml(note.title || "Untitled")}</h3>
           ${note.category ? `<span class="note-badge">${note.category}</span>` : ""}
+          ${hasPassword ? `<span class="note-locked-badge"><i class="fa-solid fa-lock"></i> ${this.t("protectedBadge")}</span>` : ""}
         </div>
         <div class="note-actions-inline">
           <button class="note-star-btn ${isStarred ? "starred" : ""}" title="Star" data-action="star">
@@ -916,7 +969,7 @@ class NoteApp {
         </div>
       </div>
       <div class="note-card-body">
-        <p class="note-card-text">${this.escapeHtml(note.content || "")}</p>
+        <p class="note-card-text">${this.escapeHtml(previewContent)}</p>
       </div>
       <div class="note-card-footer">
         <span>${dateString}</span>
@@ -924,7 +977,7 @@ class NoteApp {
       </div>
     `;
 
-    // Click on card opens editor
+    // Click on card opens editor (or unlock modal if password-protected)
     card.addEventListener("click", (e) => {
       const action = e.target.closest("[data-action]")?.dataset.action;
       if (action === "star") {
@@ -935,7 +988,11 @@ class NoteApp {
         const menuBtn = e.target.closest(".note-menu-btn");
         this.openContextMenu(e, note.id, menuBtn);
       } else {
-        this.openEditor(note.id);
+        if (isLocked) {
+          this.openUnlockModal(note.id);
+        } else {
+          this.openEditor(note.id);
+        }
       }
     });
 
@@ -1028,6 +1085,10 @@ class NoteApp {
     this.updateModalCategories();
     this.editingNoteId = noteId;
 
+    // Reset password field to password type
+    this.notePasswordInput.type = "password";
+    this.togglePwdVisibilityBtn.querySelector("i").className = "fa-regular fa-eye";
+
     if (noteId) {
       const note = this.notes.find(n => n.id === noteId);
       if (!note) return;
@@ -1037,6 +1098,7 @@ class NoteApp {
       this.selectedColor = note.color || "default";
       this.isStarred = !!note.starred;
       this.isPinned = !!note.pinned;
+      this.notePasswordInput.value = note.password || "";
     } else {
       this.noteTitleInput.value = "";
       this.noteContentInput.value = "";
@@ -1044,6 +1106,7 @@ class NoteApp {
       this.selectedColor = "default";
       this.isStarred = false;
       this.isPinned = false;
+      this.notePasswordInput.value = "";
     }
 
     // Set color dots
@@ -1081,6 +1144,7 @@ class NoteApp {
   saveCurrentNote() {
     const title = this.noteTitleInput.value.trim();
     const content = this.noteContentInput.value.trim();
+    const password = this.notePasswordInput.value.trim();
 
     if (!title && !content) {
       this.closeEditor();
@@ -1101,6 +1165,8 @@ class NoteApp {
           color: this.selectedColor,
           starred: this.isStarred,
           pinned: this.isPinned,
+          password: password || null,
+          _unlocked: true,
           updatedAt: now
         };
       }
@@ -1114,6 +1180,8 @@ class NoteApp {
         color: this.selectedColor,
         starred: this.isStarred,
         pinned: this.isPinned,
+        password: password || null,
+        _unlocked: true,
         createdAt: now,
         updatedAt: now
       };
@@ -1124,6 +1192,43 @@ class NoteApp {
     this.render();
     this.closeEditor();
     this.showToast(this.t("savedSuccess"));
+  }
+
+  // --- Password Unlock System ---
+  openUnlockModal(noteId) {
+    this.pendingUnlockNoteId = noteId;
+    this.unlockPasswordInput.value = "";
+    this.unlockModal.classList.add("active");
+    setTimeout(() => this.unlockPasswordInput.focus(), 150);
+  }
+
+  closeUnlockModal() {
+    this.unlockModal.classList.remove("active");
+    this.pendingUnlockNoteId = null;
+  }
+
+  handleUnlockSubmit() {
+    if (!this.pendingUnlockNoteId) return;
+
+    const note = this.notes.find(n => n.id === this.pendingUnlockNoteId);
+    if (!note) {
+      this.closeUnlockModal();
+      return;
+    }
+
+    const entered = this.unlockPasswordInput.value.trim();
+    if (entered === note.password) {
+      note._unlocked = true;
+      const targetNoteId = this.pendingUnlockNoteId;
+      this.closeUnlockModal();
+      this.render();
+      this.showToast(this.t("noteUnlocked"));
+      this.openEditor(targetNoteId);
+    } else {
+      this.showToast(this.t("wrongPassword"));
+      this.unlockPasswordInput.value = "";
+      this.unlockPasswordInput.focus();
+    }
   }
 
   // --- Backup & Restore (JSON Export/Import) ---

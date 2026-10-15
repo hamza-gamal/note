@@ -976,6 +976,140 @@ html[dir="rtl"] .dropdown-menu { left: 0; }
   transition: transform 0.15s, border-color 0.15s;
 }
 
+.password-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrap input {
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  padding: 6px 30px 6px 10px;
+  font-size: 0.85rem;
+  outline: none;
+  font-family: inherit;
+  width: 140px;
+  transition: var(--transition);
+}
+
+html[dir="rtl"] .password-input-wrap input {
+  padding: 6px 10px 6px 30px;
+}
+
+.password-input-wrap input:focus {
+  border-color: var(--primary);
+  width: 160px;
+}
+
+.toggle-pwd-visibility-btn {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px;
+}
+
+html[dir="rtl"] .toggle-pwd-visibility-btn {
+  right: auto;
+  left: 6px;
+}
+
+/* Unlock Modal Styling */
+.unlock-card {
+  max-width: 380px !important;
+  text-align: center;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.unlock-icon-wrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--primary-glow);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
+.unlock-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.unlock-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.unlock-input-wrap {
+  width: 100%;
+}
+
+.unlock-input-wrap input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-size: 0.95rem;
+  outline: none;
+  text-align: center;
+  font-family: inherit;
+}
+
+.unlock-input-wrap input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.unlock-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.unlock-actions .btn {
+  flex: 1;
+}
+
+/* Locked Card State in Grid */
+.note-card.is-locked .note-card-text {
+  filter: blur(5px);
+  user-select: none;
+  opacity: 0.5;
+}
+
+.note-locked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-glow);
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-inline-start: 6px;
+}
+
 .color-dot:hover {
   transform: scale(1.15);
 }

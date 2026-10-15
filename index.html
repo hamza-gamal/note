@@ -233,6 +233,17 @@
             <button type="button" class="color-dot" data-color="purple" style="background: #a855f7;" title="Purple"></button>
           </div>
         </div>
+
+        <!-- Optional Password Lock Field -->
+        <div class="meta-field password-meta-field">
+          <label for="notePasswordInput"><i class="fa-solid fa-lock"></i> <span data-i18n="passwordLabel">Password</span>:</label>
+          <div class="password-input-wrap">
+            <input type="password" id="notePasswordInput" placeholder="Optional password..." data-i18n-placeholder="passwordPlaceholder" />
+            <button type="button" class="toggle-pwd-visibility-btn" id="togglePwdVisibilityBtn" title="Toggle password visibility">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Editor Textarea -->
@@ -253,6 +264,29 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Note Unlock Modal -->
+  <div class="modal" id="unlockModal">
+    <div class="modal-card unlock-card">
+      <div class="unlock-icon-wrap">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <h3 class="unlock-title" data-i18n="lockedNoteTitle">Protected Note</h3>
+      <p class="unlock-desc" data-i18n="lockedNoteDesc">Enter the password to view and edit this note.</p>
+      <form id="unlockForm" onsubmit="return false;">
+        <div class="unlock-input-wrap">
+          <input type="password" id="unlockPasswordInput" placeholder="Enter password..." data-i18n-placeholder="unlockPlaceholder" autofocus autocomplete="off" />
+        </div>
+        <div class="unlock-actions">
+          <button type="button" class="btn btn-secondary" id="unlockCancelBtn" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="unlockSubmitBtn">
+            <i class="fa-solid fa-key"></i>
+            <span data-i18n="unlockBtn">Unlock</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
