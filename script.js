@@ -162,7 +162,12 @@ class NoteApp {
   loadNotes() {
     try {
       const data = localStorage.getItem("offline_notes_data");
-      return data ? JSON.parse(data) : [];
+      const list = data ? JSON.parse(data) : [];
+      // Ensure all password protected notes are locked on startup
+      list.forEach(n => {
+        delete n._unlocked;
+      });
+      return list;
     } catch (e) {
       console.error("Failed to parse notes from localStorage:", e);
       return [];
@@ -399,7 +404,14 @@ class NoteApp {
     // Context Menu Actions
     this.menuEdit.addEventListener("click", () => {
       if (this.activeContextMenuNoteId) {
-        this.openEditor(this.activeContextMenuNoteId);
+        const note = this.notes.find(n => n.id === this.activeContextMenuNoteId);
+        const targetId = this.activeContextMenuNoteId;
+        this.closeContextMenu();
+        if (note && note.password && !note._unlocked) {
+          this.openUnlockModal(targetId);
+        } else {
+          this.openEditor(targetId);
+        }
       }
     });
 
@@ -1026,6 +1038,14 @@ class NoteApp {
   }
 
   closeEditor() {
+    // If a note with a password was opened/unlocked, relock it when closing editor
+    if (this.editingNoteId) {
+      const note = this.notes.find(n => n.id === this.editingNoteId);
+      if (note && note.password) {
+        delete note._unlocked;
+        this.renderNotes();
+      }
+    }
     this.editorModal.classList.remove("active");
     this.editingNoteId = null;
   }
@@ -1055,9 +1075,10 @@ class NoteApp {
           starred: this.isStarred,
           pinned: this.isPinned,
           password: password || null,
-          _unlocked: true,
           updatedAt: now
         };
+        // Always ensure protected notes lock immediately on save
+        delete this.notes[index]._unlocked;
       }
     } else {
       // Create new
@@ -1070,16 +1091,17 @@ class NoteApp {
         starred: this.isStarred,
         pinned: this.isPinned,
         password: password || null,
-        _unlocked: true,
         createdAt: now,
         updatedAt: now
       };
+      // Locked by default
+      delete newNote._unlocked;
       this.notes.unshift(newNote);
     }
 
     this.saveNotes();
-    this.render();
     this.closeEditor();
+    this.render();
     this.showToast(this.t("savedSuccess"));
   }
 
