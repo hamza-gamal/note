@@ -703,7 +703,7 @@ class NoteApp {
       return;
     }
     if (this.categories.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
-      alert(this.t("categoryExists"));
+      this.showToast(this.t("categoryExists"));
       return;
     }
     this.categories.push(trimmed);
@@ -719,7 +719,7 @@ class NoteApp {
     const trimmed = newName.trim();
     if (!trimmed || trimmed === oldName) return;
     if (this.categories.some(c => c.toLowerCase() === trimmed.toLowerCase() && c.toLowerCase() !== oldName.toLowerCase())) {
-      alert(this.t("categoryExists"));
+      this.showToast(this.t("categoryExists"));
       return;
     }
 
@@ -742,9 +742,6 @@ class NoteApp {
   }
 
   deleteCategory(catName) {
-    const confirmMsg = this.t("confirmDeleteCategory").replace("{cat}", catName);
-    if (!confirm(confirmMsg)) return;
-
     this.categories = this.categories.filter(c => c !== catName);
     // Re-assign notes to "General" or first category
     const fallbackCategory = this.categories[0] || "General";
@@ -1156,10 +1153,10 @@ class NoteApp {
           this.render();
           this.showToast(this.t("restoredSuccess"));
         } else {
-          alert(this.t("invalidBackupFile"));
+          this.showToast(this.t("invalidBackupFile"));
         }
       } catch (err) {
-        alert(this.t("invalidBackupFile"));
+        this.showToast(this.t("invalidBackupFile"));
       }
     };
     reader.readAsText(file);
