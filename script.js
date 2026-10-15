@@ -63,7 +63,9 @@ const TRANSLATIONS = {
     unlockBtn: "Unlock",
     wrongPassword: "Incorrect password! Try again.",
     noteUnlocked: "Note unlocked successfully!",
-    protectedBadge: "Locked",
+    lockedFolder: "Passwords",
+    lockedNotesTitle: "Password Protected Notes",
+    lockedNotesSubtitle: "Notes secured with personal passwords.",
     langName: "English"
   },
   ar: {
@@ -123,7 +125,9 @@ const TRANSLATIONS = {
     unlockBtn: "فتح الملاحظة",
     wrongPassword: "كلمة المرور غير صحيحة! حاول مجدداً.",
     noteUnlocked: "تم فتح الملاحظة بنجاح!",
-    protectedBadge: "محمية",
+    lockedFolder: "كلمات المرور",
+    lockedNotesTitle: "الملاحظات المحمية بكلمة سر",
+    lockedNotesSubtitle: "ملاحظاتك الخاصة والمشفرة بكلمات مرور شخصية.",
     langName: "العربية"
   }
 };
@@ -200,6 +204,7 @@ class NoteApp {
     this.addCategoryBtn = document.getElementById("addCategoryBtn");
     this.countAll = document.getElementById("countAll");
     this.countStarred = document.getElementById("countStarred");
+    this.countLocked = document.getElementById("countLocked");
 
     // Topbar
     this.searchInput = document.getElementById("searchInput");
@@ -505,8 +510,12 @@ class NoteApp {
   renderCounts() {
     const total = this.notes.length;
     const starred = this.notes.filter(n => n.starred).length;
+    const locked = this.notes.filter(n => Boolean(n.password)).length;
     this.countAll.textContent = total;
     this.countStarred.textContent = starred;
+    if (this.countLocked) {
+      this.countLocked.textContent = locked;
+    }
     this.storageStatsText.textContent = `${total} ${this.t("storedCount")}`;
   }
 
@@ -701,6 +710,8 @@ class NoteApp {
     // Filter by view/category
     if (this.currentFilter === "starred") {
       list = list.filter(n => n.starred);
+    } else if (this.currentFilter === "locked") {
+      list = list.filter(n => Boolean(n.password));
     } else if (this.currentFilter !== "all") {
       list = list.filter(n => n.category === this.currentFilter);
     }
@@ -727,6 +738,9 @@ class NoteApp {
     if (this.currentFilter === "starred") {
       this.currentViewTitle.textContent = this.t("starredNotesTitle");
       this.currentViewSubtitle.textContent = this.t("starredNotesSubtitle");
+    } else if (this.currentFilter === "locked") {
+      this.currentViewTitle.textContent = this.t("lockedNotesTitle");
+      this.currentViewSubtitle.textContent = this.t("lockedNotesSubtitle");
     } else if (this.currentFilter === "all") {
       this.currentViewTitle.textContent = this.t("allNotesTitle");
       this.currentViewSubtitle.textContent = this.t("allNotesSubtitle");
