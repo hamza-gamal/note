@@ -39,7 +39,8 @@ const TRANSLATIONS = {
     confirmDelete: "Are you sure you want to delete this note?",
     copiedSuccess: "Note copied to clipboard!",
     savedSuccess: "Note saved successfully!",
-    deletedSuccess: "Note deleted successfully!",
+    deletedSuccess: "Note deleted",
+    undo: "Undo",
     restoredSuccess: "Notes restored successfully!",
     invalidBackupFile: "Invalid backup file format.",
     chars: "characters",
@@ -86,7 +87,8 @@ const TRANSLATIONS = {
     confirmDelete: "هل أنت متأكد من رغبتك في حذف هذه الملاحظة؟",
     copiedSuccess: "تم نسخ محتوى الملاحظة بنجاح!",
     savedSuccess: "تم حفظ الملاحظة بنجاح!",
-    deletedSuccess: "تم حذف الملاحظة بنجاح!",
+    deletedSuccess: "تم حذف الملاحظة",
+    undo: "تراجع",
     restoredSuccess: "تمت استعادة الملاحظات بنجاح!",
     invalidBackupFile: "ملف النسخ الاحتياطي غير صالح.",
     chars: "حرف",
@@ -466,9 +468,14 @@ class NoteApp {
     this.menuDownload = document.getElementById("menuDownload");
     this.menuDelete = document.getElementById("menuDelete");
 
-    // Toast
+    // Toast & Undo
     this.toast = document.getElementById("toast");
     this.toastMessage = document.getElementById("toastMessage");
+    this.toastUndoBtn = document.getElementById("toastUndoBtn");
+    this.toastUndoText = document.getElementById("toastUndoText");
+    this.toastIcon = document.getElementById("toastIcon");
+    this.toastTimer = null;
+    this.lastDeletedNote = null;
 
     // Import / Export
     this.exportDataBtn = document.getElementById("exportDataBtn");
@@ -601,6 +608,9 @@ class NoteApp {
     // Backup & Restore
     this.exportDataBtn.addEventListener("click", () => this.exportBackup());
     this.importDataInput.addEventListener("change", (e) => this.importBackup(e));
+
+    // Toast Undo Action
+    this.toastUndoBtn.addEventListener("click", () => this.undoDelete());
   }
 
   toggleSidebar(open) {
@@ -969,13 +979,36 @@ class NoteApp {
   }
 
   deleteNote(noteId) {
-    if (confirm(this.t("confirmDelete"))) {
-      this.notes = this.notes.filter(n => n.id !== noteId);
-      this.saveNotes();
-      this.render();
-      this.showToast(this.t("deletedSuccess"));
-      this.closeContextMenu();
+    const noteToDelete = this.notes.find(n => n.id === noteId);
+    if (!noteToDelete) return;
+
+    const noteIndex = this.notes.findIndex(n => n.id === noteId);
+    this.lastDeletedNote = { note: { ...noteToDelete }, index: noteIndex };
+
+    this.notes = this.notes.filter(n => n.id !== noteId);
+    this.saveNotes();
+    this.render();
+    this.closeContextMenu();
+
+    this.showToast(this.t("deletedSuccess"), true);
+  }
+
+  undoDelete() {
+    if (!this.lastDeletedNote) return;
+    const { note, index } = this.lastDeletedNote;
+
+    // Restore note at its previous position
+    if (index >= 0 && index <= this.notes.length) {
+      this.notes.splice(index, 0, note);
+    } else {
+      this.notes.unshift(note);
     }
+
+    this.lastDeletedNote = null;
+    this.saveNotes();
+    this.render();
+    this.hideToast();
+    this.showToast(this.t("restoredSuccess"), false);
   }
 
   downloadNoteTxt(note) {
@@ -1133,13 +1166,39 @@ class NoteApp {
     event.target.value = ""; // Reset input
   }
 
-  // --- Toast Notification ---
-  showToast(message) {
+  // --- Toast Notification with Undo ---
+  showToast(message, showUndo = false) {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+
     this.toastMessage.textContent = message;
+
+    if (showUndo) {
+      this.toastUndoBtn.style.display = "inline-flex";
+      this.toastUndoText.textContent = this.t("undo");
+      this.toastIcon.className = "fa-solid fa-trash-can text-danger";
+    } else {
+      this.toastUndoBtn.style.display = "none";
+      this.toastIcon.className = "fa-solid fa-circle-check text-success";
+    }
+
     this.toast.classList.add("show");
-    setTimeout(() => {
-      this.toast.classList.remove("show");
-    }, 3000);
+
+    // Give 5 seconds if Undo is enabled, otherwise 3 seconds
+    const duration = showUndo ? 5000 : 3000;
+    this.toastTimer = setTimeout(() => {
+      this.hideToast();
+    }, duration);
+  }
+
+  hideToast() {
+    this.toast.classList.remove("show");
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
   }
 
   // Helper Escape HTML

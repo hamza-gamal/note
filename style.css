@@ -1086,16 +1086,16 @@ html[dir="rtl"] .dropdown-menu { left: 0; }
 .toast {
   position: fixed;
   bottom: 24px;
-  end: 24px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   color: var(--text-main);
-  padding: 12px 20px;
+  padding: 10px 16px;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 16px;
   font-size: 0.9rem;
   font-weight: 500;
   transform: translateY(100px);
@@ -1103,6 +1103,7 @@ html[dir="rtl"] .dropdown-menu { left: 0; }
   pointer-events: none;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
   z-index: 2000;
+  max-width: 90vw;
 }
 html[dir="ltr"] .toast { right: 24px; }
 html[dir="rtl"] .toast { left: 24px; }
@@ -1110,10 +1111,39 @@ html[dir="rtl"] .toast { left: 24px; }
 .toast.show {
   transform: translateY(0);
   opacity: 1;
+  pointer-events: auto;
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .toast-icon {
   color: var(--success);
+}
+
+.toast-undo-btn {
+  background: var(--card-hover);
+  border: 1px solid var(--border-color);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.toast-undo-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 
 /* -------------------------------------------------------------
