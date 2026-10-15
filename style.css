@@ -1185,15 +1185,115 @@ html[dir="rtl"] .toast { left: 24px; }
   }
 
   .content-body {
-    padding: 18px;
+    padding: 16px 14px;
   }
 
   .topbar {
-    padding: 0 16px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .topbar-left {
+    gap: 8px;
+  }
+
+  .search-box input {
+    font-size: 0.85rem;
+    padding: 8px 32px;
+  }
+
+  .topbar-right {
+    gap: 6px;
+  }
+
+  .topbar-btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .view-header {
+    margin-bottom: 16px;
+  }
+
+  .view-title {
+    font-size: 1.35rem;
   }
 
   .notes-grid {
     grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .note-card {
+    padding: 16px;
+  }
+
+  /* Modal on Mobile */
+  .modal {
+    padding: 10px;
+  }
+
+  .modal-card {
+    max-height: 94vh;
+    border-radius: var(--radius-lg);
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  .editor-title-input {
+    font-size: 1.1rem;
+  }
+
+  .modal-meta-bar {
+    padding: 10px 16px;
+    gap: 10px;
+  }
+
+  .modal-body {
+    padding: 14px 16px;
+  }
+
+  .editor-textarea {
+    min-height: 180px;
+    font-size: 0.95rem;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+    flex-direction: column-reverse;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .modal-footer-btns {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .modal-footer-btns .btn {
+    flex: 1;
+  }
+
+  .editor-stats {
+    text-align: center;
+  }
+
+  /* Toast on Mobile */
+  .toast {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 16px;
+    width: auto;
+    padding: 10px 14px;
+    font-size: 0.85rem;
   }
 }
 
