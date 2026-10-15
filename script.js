@@ -47,8 +47,11 @@ const TRANSLATIONS = {
     words: "words",
     storedCount: "notes stored locally",
     emptyCategory: "No notes in this category",
-    addCategoryPrompt: "Enter new folder/category name:",
-    editCategoryPrompt: "Rename folder to:",
+    addCategoryPrompt: "New Folder",
+    editCategoryPrompt: "Edit Folder",
+    folderNameLabel: "Folder Name:",
+    folderPlaceholder: "Enter folder name...",
+    save: "Save",
     confirmDeleteCategory: "Delete folder '{cat}'? Notes in this folder will be moved to General.",
     categoryExists: "This folder already exists!",
     categoryNameEmpty: "Folder name cannot be empty.",
@@ -104,8 +107,11 @@ const TRANSLATIONS = {
     words: "كلمة",
     storedCount: "ملاحظات محفوظة محلياً",
     emptyCategory: "لا توجد ملاحظات في هذا التصنيف",
-    addCategoryPrompt: "أدخل اسم المجلد أو التصنيف الجديد:",
-    editCategoryPrompt: "تعديل اسم المجلد إلى:",
+    addCategoryPrompt: "مجلد جديد",
+    editCategoryPrompt: "تعديل المجلد",
+    folderNameLabel: "اسم المجلد:",
+    folderPlaceholder: "أدخل اسم المجلد...",
+    save: "حفظ",
     confirmDeleteCategory: "هل تريد بالتأكيد حذف المجلد '{cat}'؟ سيتم نقل ملاحظاته إلى عام (General).",
     categoryExists: "هذا المجلد موجود بالفعل!",
     categoryNameEmpty: "لا يمكن أن يكون اسم المجلد فارغاً.",
@@ -236,6 +242,18 @@ class NoteApp {
     this.unlockCancelBtn = document.getElementById("unlockCancelBtn");
     this.pendingUnlockNoteId = null;
 
+    // Folder Modal (Custom UI for Add & Edit)
+    this.folderModal = document.getElementById("folderModal");
+    this.folderForm = document.getElementById("folderForm");
+    this.folderModalTitle = document.getElementById("folderModalTitle");
+    this.folderInputLabel = document.getElementById("folderInputLabel");
+    this.folderNameInput = document.getElementById("folderNameInput");
+    this.folderModalCloseBtn = document.getElementById("folderModalCloseBtn");
+    this.folderModalCancelBtn = document.getElementById("folderModalCancelBtn");
+    this.folderModalSaveBtn = document.getElementById("folderModalSaveBtn");
+    this.folderModalSaveText = document.getElementById("folderModalSaveText");
+    this.folderEditingOriginalName = null;
+
     // Context Menu
     this.noteMenu = document.getElementById("noteMenu");
     this.menuEdit = document.getElementById("menuEdit");
@@ -358,6 +376,14 @@ class NoteApp {
     this.unlockForm.addEventListener("submit", (e) => {
       e.preventDefault();
       this.handleUnlockSubmit();
+    });
+
+    // Folder Modal Events (Modern in-app modal instead of browser prompt)
+    this.folderModalCloseBtn.addEventListener("click", () => this.closeFolderModal());
+    this.folderModalCancelBtn.addEventListener("click", () => this.closeFolderModal());
+    this.folderForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.handleFolderSubmit();
     });
 
     // Context Menu Actions
@@ -483,51 +509,90 @@ class NoteApp {
     this.storageStatsText.textContent = `${total} ${this.t("storedCount")}`;
   }
 
+  // --- Folder Management with Custom Modal (No window.prompt) ---
+  openFolderModal(editName = null) {
+    this.folderEditingOriginalName = editName;
+    const isEdit = Boolean(editName);
+
+    this.folderModalTitle.textContent = isEdit ? this.t("editCategoryPrompt") : this.t("addCategoryPrompt");
+    this.folderInputLabel.textContent = this.t("folderNameLabel");
+    this.folderNameInput.placeholder = this.t("folderPlaceholder");
+    this.folderModalSaveText.textContent = this.t("save");
+    this.folderNameInput.value = isEdit ? editName : "";
+
+    this.folderModal.classList.add("active");
+    setTimeout(() => {
+      this.folderNameInput.focus();
+      this.folderNameInput.select();
+    }, 120);
+  }
+
+  closeFolderModal() {
+    this.folderModal.classList.remove("active");
+    this.folderEditingOriginalName = null;
+    this.folderNameInput.value = "";
+  }
+
+  handleFolderSubmit() {
+    const rawVal = this.folderNameInput.value.trim();
+    if (!rawVal) {
+      this.showToast(this.t("categoryNameEmpty"));
+      return;
+    }
+
+    const isEdit = Boolean(this.folderEditingOriginalName);
+
+    if (isEdit) {
+      const oldName = this.folderEditingOriginalName;
+      if (rawVal === oldName) {
+        this.closeFolderModal();
+        return;
+      }
+
+      if (this.categories.some(c => c.toLowerCase() === rawVal.toLowerCase() && c.toLowerCase() !== oldName.toLowerCase())) {
+        this.showToast(this.t("categoryExists"));
+        return;
+      }
+
+      const index = this.categories.indexOf(oldName);
+      if (index !== -1) {
+        this.categories[index] = rawVal;
+        // Update notes
+        this.notes.forEach(n => {
+          if (n.category === oldName) n.category = rawVal;
+        });
+        if (this.currentFilter === oldName) {
+          this.currentFilter = rawVal;
+        }
+        this.saveCategories();
+        this.saveNotes();
+        this.render();
+        this.updateModalCategories();
+        this.closeFolderModal();
+        this.showToast(`Folder renamed to "${rawVal}"`);
+      }
+    } else {
+      // Create new folder
+      if (this.categories.some(c => c.toLowerCase() === rawVal.toLowerCase())) {
+        this.showToast(this.t("categoryExists"));
+        return;
+      }
+
+      this.categories.push(rawVal);
+      this.saveCategories();
+      this.renderCategoriesNav();
+      this.updateModalCategories();
+      this.closeFolderModal();
+      this.showToast(`Folder "${rawVal}" added!`);
+    }
+  }
+
   promptAddCategory() {
-    const name = prompt(this.t("addCategoryPrompt"));
-    if (!name) return;
-    const trimmed = name.trim();
-    if (!trimmed) {
-      alert(this.t("categoryNameEmpty"));
-      return;
-    }
-    if (this.categories.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
-      this.showToast(this.t("categoryExists"));
-      return;
-    }
-    this.categories.push(trimmed);
-    this.saveCategories();
-    this.renderCategoriesNav();
-    this.updateModalCategories();
-    this.showToast(`Folder "${trimmed}" added!`);
+    this.openFolderModal(null);
   }
 
   renameCategory(oldName) {
-    const newName = prompt(this.t("editCategoryPrompt"), oldName);
-    if (!newName) return;
-    const trimmed = newName.trim();
-    if (!trimmed || trimmed === oldName) return;
-    if (this.categories.some(c => c.toLowerCase() === trimmed.toLowerCase() && c.toLowerCase() !== oldName.toLowerCase())) {
-      this.showToast(this.t("categoryExists"));
-      return;
-    }
-
-    const index = this.categories.indexOf(oldName);
-    if (index !== -1) {
-      this.categories[index] = trimmed;
-      // Update all notes with this category
-      this.notes.forEach(n => {
-        if (n.category === oldName) n.category = trimmed;
-      });
-      if (this.currentFilter === oldName) {
-        this.currentFilter = trimmed;
-      }
-      this.saveCategories();
-      this.saveNotes();
-      this.render();
-      this.updateModalCategories();
-      this.showToast(`Folder renamed to "${trimmed}"`);
-    }
+    this.openFolderModal(oldName);
   }
 
   deleteCategory(catName) {

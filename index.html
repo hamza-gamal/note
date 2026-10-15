@@ -272,6 +272,34 @@
     </div>
   </div>
 
+  <!-- Folder / Category Modal (Create & Edit) -->
+  <div class="modal" id="folderModal">
+    <div class="modal-card folder-modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="folderModalTitle">Edit Folder</h3>
+        <button class="icon-btn" id="folderModalCloseBtn" title="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form id="folderForm" onsubmit="return false;">
+        <div class="folder-modal-body">
+          <label class="folder-input-label" for="folderNameInput" id="folderInputLabel">Folder Name:</label>
+          <input type="text" id="folderNameInput" class="folder-text-input" placeholder="Enter folder name..." maxlength="40" autocomplete="off" />
+        </div>
+        <div class="modal-footer">
+          <div></div>
+          <div class="modal-footer-btns">
+            <button type="button" class="btn btn-secondary" id="folderModalCancelBtn" data-i18n="cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="folderModalSaveBtn">
+              <i class="fa-solid fa-check"></i>
+              <span id="folderModalSaveText">Save</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Note Settings Context Menu (Delete, Edit, Copy, Download TXT) -->
   <div class="context-menu" id="noteMenu">
     <button class="context-item" id="menuEdit">
