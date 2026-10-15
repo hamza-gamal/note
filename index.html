@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline Notes | Keep Your Thoughts Private</title>
+  <!-- Google Fonts & Font Awesome for icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-theme="dark">
+  <!-- Mobile Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Main App Layout -->
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <i class="fa-solid fa-note-sticky brand-icon"></i>
+          <span class="brand-title">OfflineNote</span>
+        </div>
+        <button class="icon-btn mobile-close-btn" id="closeSidebarBtn" title="Close sidebar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Quick Action: New Note -->
+      <div class="sidebar-action">
+        <button class="btn btn-primary btn-block" id="newNoteBtn">
+          <i class="fa-solid fa-plus"></i>
+          <span data-i18n="newNote">New Note</span>
+        </button>
+      </div>
+
+      <!-- Navigation & Filters -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-title" data-i18n="views">Views</div>
+        <button class="nav-item active" data-filter="all">
+          <i class="fa-solid fa-layer-group"></i>
+          <span data-i18n="allNotes">All Notes</span>
+          <span class="counter" id="countAll">0</span>
+        </button>
+        <button class="nav-item" data-filter="starred">
+          <i class="fa-solid fa-star"></i>
+          <span data-i18n="starredNotes">Starred</span>
+          <span class="counter" id="countStarred">0</span>
+        </button>
+
+        <div class="nav-section-title-wrap">
+          <div class="nav-section-title" data-i18n="categories">Categories</div>
+          <button class="add-cat-btn" id="addCategoryBtn" title="Add Folder / Category">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+        <div class="categories-list" id="categoriesNav">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <div class="nav-section-title" data-i18n="actions">Actions</div>
+        <button class="nav-item" id="exportDataBtn">
+          <i class="fa-solid fa-download"></i>
+          <span data-i18n="exportBackup">Backup Notes (JSON)</span>
+        </button>
+        <label class="nav-item file-upload-label" for="importDataInput">
+          <i class="fa-solid fa-upload"></i>
+          <span data-i18n="importBackup">Restore Notes</span>
+          <input type="file" id="importDataInput" accept=".json" style="display:none;" />
+        </label>
+      </nav>
+
+      <!-- Sidebar Footer Links & Portfolio -->
+      <div class="sidebar-footer">
+        <a href="https://hamza-gamal.github.io" target="_blank" rel="noopener noreferrer" class="portfolio-link" id="portfolioBtn">
+          <i class="fa-solid fa-globe"></i>
+          <span data-i18n="mainWebsite">Hamza Portfolio</span>
+          <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i>
+        </a>
+        <div class="badge-privacy">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span data-i18n="privacyBadge">100% Offline & Private</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn mobile-menu-btn" id="toggleSidebarBtn" title="Toggle menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="searchInput" placeholder="Search notes..." data-i18n-placeholder="searchPlaceholder" autocomplete="off" />
+            <button class="clear-search-btn" id="clearSearchBtn" title="Clear">
+              <i class="fa-solid fa-circle-xmark"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Language Selector -->
+          <div class="dropdown-wrapper">
+            <button class="topbar-btn" id="langSelectorBtn" title="Change Language">
+              <i class="fa-solid fa-language"></i>
+              <span id="currentLangLabel">English</span>
+              <i class="fa-solid fa-chevron-down caret-icon"></i>
+            </button>
+            <div class="dropdown-menu" id="langMenu">
+              <button class="dropdown-item active" data-lang="en">
+                <span>🇺🇸 English</span>
+              </button>
+              <button class="dropdown-item" data-lang="ar">
+                <span>🇪🇬 العربية</span>
+              </button>
+              <button class="dropdown-item" data-lang="zh">
+                <span>🇨🇳 中文 (Chinese)</span>
+              </button>
+              <button class="dropdown-item" data-lang="es">
+                <span>🇪🇸 Español (Spanish)</span>
+              </button>
+              <button class="dropdown-item" data-lang="fr">
+                <span>🇫🇷 Français (French)</span>
+              </button>
+              <button class="dropdown-item" data-lang="de">
+                <span>🇩🇪 Deutsch (German)</span>
+              </button>
+              <button class="dropdown-item" data-lang="ru">
+                <span>🇷🇺 Русский (Russian)</span>
+              </button>
+              <button class="dropdown-item" data-lang="ja">
+                <span>🇯🇵 日本語 (Japanese)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Theme Toggle -->
+          <button class="icon-btn theme-toggle-btn" id="themeToggleBtn" title="Toggle Dark/Light Mode">
+            <i class="fa-solid fa-sun" id="themeIcon"></i>
+          </button>
+
+          <!-- Quick Home Link -->
+          <a href="https://hamza-gamal.github.io" target="_blank" rel="noopener noreferrer" class="icon-btn home-btn" title="Main Portfolio">
+            <i class="fa-solid fa-house"></i>
+          </a>
+        </div>
+      </header>
+
+      <!-- Content Container: Notes Grid & Editor Area -->
+      <section class="content-body">
+        <!-- View Header Banner -->
+        <div class="view-header">
+          <div>
+            <h1 class="view-title" id="currentViewTitle">All Notes</h1>
+            <p class="view-subtitle" id="currentViewSubtitle">Private, safe, local in your browser without internet.</p>
+          </div>
+          <div class="view-controls">
+            <div class="stats-pill">
+              <i class="fa-solid fa-database"></i>
+              <span id="storageStatsText">0 notes stored locally</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes Grid -->
+        <div class="notes-grid" id="notesGrid">
+          <!-- Dynamic note cards will be injected here -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+          <div class="empty-icon-wrapper">
+            <i class="fa-regular fa-note-sticky"></i>
+          </div>
+          <h3 data-i18n="noNotesTitle">No notes found</h3>
+          <p data-i18n="noNotesDesc">Create your first offline note now. Everything stays strictly on your device.</p>
+          <button class="btn btn-primary" id="emptyNewNoteBtn">
+            <i class="fa-solid fa-plus"></i>
+            <span data-i18n="createFirstNote">Create a Note</span>
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Note Editor Modal -->
+  <div class="modal" id="editorModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <input type="text" id="noteTitleInput" class="editor-title-input" placeholder="Note Title..." data-i18n-placeholder="noteTitlePlaceholder" maxlength="120" />
+        </div>
+        <div class="modal-header-actions">
+          <!-- Star toggle in modal -->
+          <button class="icon-btn" id="modalStarBtn" title="Toggle Star">
+            <i class="fa-regular fa-star" id="modalStarIcon"></i>
+          </button>
+          <!-- Pin toggle in modal -->
+          <button class="icon-btn" id="modalPinBtn" title="Toggle Pin">
+            <i class="fa-solid fa-thumbtack" id="modalPinIcon"></i>
+          </button>
+          <!-- Close Modal -->
+          <button class="icon-btn" id="modalCloseBtn" title="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Note Category & Color Tags -->
+      <div class="modal-meta-bar">
+        <div class="meta-field">
+          <label for="noteCategorySelect"><i class="fa-solid fa-tag"></i> <span data-i18n="category">Category</span>:</label>
+          <select id="noteCategorySelect">
+            <option value="Personal">Personal</option>
+            <option value="Work">Work</option>
+            <option value="Ideas">Ideas</option>
+            <option value="Important">Important</option>
+            <option value="Study">Study</option>
+          </select>
+        </div>
+
+        <div class="meta-field">
+          <label><i class="fa-solid fa-palette"></i> <span data-i18n="color">Color</span>:</label>
+          <div class="color-palette" id="colorPalette">
+            <button type="button" class="color-dot active" data-color="default" style="background: var(--card-bg);" title="Default"></button>
+            <button type="button" class="color-dot" data-color="rose" style="background: #f43f5e;" title="Rose"></button>
+            <button type="button" class="color-dot" data-color="amber" style="background: #f59e0b;" title="Amber"></button>
+            <button type="button" class="color-dot" data-color="emerald" style="background: #10b981;" title="Emerald"></button>
+            <button type="button" class="color-dot" data-color="cyan" style="background: #06b6d4;" title="Cyan"></button>
+            <button type="button" class="color-dot" data-color="indigo" style="background: #6366f1;" title="Indigo"></button>
+            <button type="button" class="color-dot" data-color="purple" style="background: #a855f7;" title="Purple"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editor Textarea -->
+      <div class="modal-body">
+        <textarea id="noteContentInput" class="editor-textarea" placeholder="Start typing your note here..." data-i18n-placeholder="noteContentPlaceholder"></textarea>
+      </div>
+
+      <!-- Editor Footer Info & Save -->
+      <div class="modal-footer">
+        <div class="editor-stats">
+          <span id="charCount">0 characters</span> • <span id="wordCount">0 words</span>
+        </div>
+        <div class="modal-footer-btns">
+          <button class="btn btn-secondary" id="modalCancelBtn" data-i18n="cancel">Cancel</button>
+          <button class="btn btn-primary" id="modalSaveBtn">
+            <i class="fa-solid fa-check"></i>
+            <span data-i18n="saveNote">Save Note</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Note Settings Context Menu (Delete, Edit, Copy, Download TXT) -->
+  <div class="context-menu" id="noteMenu">
+    <button class="context-item" id="menuEdit">
+      <i class="fa-solid fa-pen-to-square"></i>
+      <span data-i18n="edit">Edit</span>
+    </button>
+    <button class="context-item" id="menuCopy">
+      <i class="fa-solid fa-copy"></i>
+      <span data-i18n="copy">Copy Content</span>
+    </button>
+    <button class="context-item" id="menuDownload">
+      <i class="fa-solid fa-file-arrow-down"></i>
+      <span data-i18n="downloadTxt">Download as .txt</span>
+    </button>
+    <div class="context-divider"></div>
+    <button class="context-item text-danger" id="menuDelete">
+      <i class="fa-solid fa-trash-can"></i>
+      <span data-i18n="delete">Delete</span>
+    </button>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast" id="toast">
+    <i class="fa-solid fa-circle-check toast-icon"></i>
+    <span class="toast-message" id="toastMessage">Saved successfully</span>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline Notes | Keep Your Thoughts Private</title>
+  <!-- Google Fonts & Font Awesome for icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-theme="dark">
+  <!-- Mobile Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Main App Layout -->
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <i class="fa-solid fa-note-sticky brand-icon"></i>
+          <span class="brand-title">OfflineNote</span>
+        </div>
+        <button class="icon-btn mobile-close-btn" id="closeSidebarBtn" title="Close sidebar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Quick Action: New Note -->
+      <div class="sidebar-action">
+        <button class="btn btn-primary btn-block" id="newNoteBtn">
+          <i class="fa-solid fa-plus"></i>
+          <span data-i18n="newNote">New Note</span>
+        </button>
+      </div>
+
+      <!-- Navigation & Filters -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-title" data-i18n="views">Views</div>
+        <button class="nav-item active" data-filter="all">
+          <i class="fa-solid fa-layer-group"></i>
+          <span data-i18n="allNotes">All Notes</span>
+          <span class="counter" id="countAll">0</span>
+        </button>
+        <button class="nav-item" data-filter="starred">
+          <i class="fa-solid fa-star"></i>
+          <span data-i18n="starredNotes">Starred</span>
+          <span class="counter" id="countStarred">0</span>
+        </button>
+
+        <div class="nav-section-title" data-i18n="categories">Categories</div>
+        <div class="categories-list" id="categoriesNav">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <div class="nav-section-title" data-i18n="actions">Actions</div>
+        <button class="nav-item" id="exportDataBtn">
+          <i class="fa-solid fa-download"></i>
+          <span data-i18n="exportBackup">Backup Notes (JSON)</span>
+        </button>
+        <label class="nav-item file-upload-label" for="importDataInput">
+          <i class="fa-solid fa-upload"></i>
+          <span data-i18n="importBackup">Restore Notes</span>
+          <input type="file" id="importDataInput" accept=".json" style="display:none;" />
+        </label>
+      </nav>
+
+      <!-- Sidebar Footer Links & Portfolio -->
+      <div class="sidebar-footer">
+        <a href="https://hamza-gamal.github.io" target="_blank" rel="noopener noreferrer" class="portfolio-link" id="portfolioBtn">
+          <i class="fa-solid fa-globe"></i>
+          <span data-i18n="mainWebsite">Hamza Portfolio</span>
+          <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i>
+        </a>
+        <div class="badge-privacy">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span data-i18n="privacyBadge">100% Offline & Private</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn mobile-menu-btn" id="toggleSidebarBtn" title="Toggle menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="searchInput" placeholder="Search notes..." data-i18n-placeholder="searchPlaceholder" autocomplete="off" />
+            <button class="clear-search-btn" id="clearSearchBtn" title="Clear">
+              <i class="fa-solid fa-circle-xmark"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Language Selector -->
+          <div class="dropdown-wrapper">
+            <button class="topbar-btn" id="langSelectorBtn" title="Change Language">
+              <i class="fa-solid fa-language"></i>
+              <span id="currentLangLabel">English</span>
+              <i class="fa-solid fa-chevron-down caret-icon"></i>
+            </button>
+            <div class="dropdown-menu" id="langMenu">
+              <button class="dropdown-item active" data-lang="en">
+                <span>🇺🇸 English</span>
+              </button>
+              <button class="dropdown-item" data-lang="ar">
+                <span>🇪🇬 العربية</span>
+              </button>
+              <button class="dropdown-item" data-lang="zh">
+                <span>🇨🇳 中文 (Chinese)</span>
+              </button>
+              <button class="dropdown-item" data-lang="es">
+                <span>🇪🇸 Español (Spanish)</span>
+              </button>
+              <button class="dropdown-item" data-lang="fr">
+                <span>🇫🇷 Français (French)</span>
+              </button>
+              <button class="dropdown-item" data-lang="de">
+                <span>🇩🇪 Deutsch (German)</span>
+              </button>
+              <button class="dropdown-item" data-lang="ru">
+                <span>🇷🇺 Русский (Russian)</span>
+              </button>
+              <button class="dropdown-item" data-lang="ja">
+                <span>🇯🇵 日本語 (Japanese)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Theme Toggle -->
+          <button class="icon-btn theme-toggle-btn" id="themeToggleBtn" title="Toggle Dark/Light Mode">
+            <i class="fa-solid fa-sun" id="themeIcon"></i>
+          </button>
+
+          <!-- Quick Home Link -->
+          <a href="https://hamza-gamal.github.io" target="_blank" rel="noopener noreferrer" class="icon-btn home-btn" title="Main Portfolio">
+            <i class="fa-solid fa-house"></i>
+          </a>
+        </div>
+      </header>
+
+      <!-- Content Container: Notes Grid & Editor Area -->
+      <section class="content-body">
+        <!-- View Header Banner -->
+        <div class="view-header">
+          <div>
+            <h1 class="view-title" id="currentViewTitle">All Notes</h1>
+            <p class="view-subtitle" id="currentViewSubtitle">Private, safe, local in your browser without internet.</p>
+          </div>
+          <div class="view-controls">
+            <div class="stats-pill">
+              <i class="fa-solid fa-database"></i>
+              <span id="storageStatsText">0 notes stored locally</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes Grid -->
+        <div class="notes-grid" id="notesGrid">
+          <!-- Dynamic note cards will be injected here -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+          <div class="empty-icon-wrapper">
+            <i class="fa-regular fa-note-sticky"></i>
+          </div>
+          <h3 data-i18n="noNotesTitle">No notes found</h3>
+          <p data-i18n="noNotesDesc">Create your first offline note now. Everything stays strictly on your device.</p>
+          <button class="btn btn-primary" id="emptyNewNoteBtn">
+            <i class="fa-solid fa-plus"></i>
+            <span data-i18n="createFirstNote">Create a Note</span>
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Note Editor Modal -->
+  <div class="modal" id="editorModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <input type="text" id="noteTitleInput" class="editor-title-input" placeholder="Note Title..." data-i18n-placeholder="noteTitlePlaceholder" maxlength="120" />
+        </div>
+        <div class="modal-header-actions">
+          <!-- Star toggle in modal -->
+          <button class="icon-btn" id="modalStarBtn" title="Toggle Star">
+            <i class="fa-regular fa-star" id="modalStarIcon"></i>
+          </button>
+          <!-- Pin toggle in modal -->
+          <button class="icon-btn" id="modalPinBtn" title="Toggle Pin">
+            <i class="fa-solid fa-thumbtack" id="modalPinIcon"></i>
+          </button>
+          <!-- Close Modal -->
+          <button class="icon-btn" id="modalCloseBtn" title="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Note Category & Color Tags -->
+      <div class="modal-meta-bar">
+        <div class="meta-field">
+          <label for="noteCategorySelect"><i class="fa-solid fa-tag"></i> <span data-i18n="category">Category</span>:</label>
+          <select id="noteCategorySelect">
+            <option value="Personal">Personal</option>
+            <option value="Work">Work</option>
+            <option value="Ideas">Ideas</option>
+            <option value="Important">Important</option>
+            <option value="Study">Study</option>
+          </select>
+        </div>
+
+        <div class="meta-field">
+          <label><i class="fa-solid fa-palette"></i> <span data-i18n="color">Color</span>:</label>
+          <div class="color-palette" id="colorPalette">
+            <button type="button" class="color-dot active" data-color="default" style="background: var(--card-bg);" title="Default"></button>
+            <button type="button" class="color-dot" data-color="rose" style="background: #f43f5e;" title="Rose"></button>
+            <button type="button" class="color-dot" data-color="amber" style="background: #f59e0b;" title="Amber"></button>
+            <button type="button" class="color-dot" data-color="emerald" style="background: #10b981;" title="Emerald"></button>
+            <button type="button" class="color-dot" data-color="cyan" style="background: #06b6d4;" title="Cyan"></button>
+            <button type="button" class="color-dot" data-color="indigo" style="background: #6366f1;" title="Indigo"></button>
+            <button type="button" class="color-dot" data-color="purple" style="background: #a855f7;" title="Purple"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editor Textarea -->
+      <div class="modal-body">
+        <textarea id="noteContentInput" class="editor-textarea" placeholder="Start typing your note here..." data-i18n-placeholder="noteContentPlaceholder"></textarea>
+      </div>
+
+      <!-- Editor Footer Info & Save -->
+      <div class="modal-footer">
+        <div class="editor-stats">
+          <span id="charCount">0 characters</span> • <span id="wordCount">0 words</span>
+        </div>
+        <div class="modal-footer-btns">
+          <button class="btn btn-secondary" id="modalCancelBtn" data-i18n="cancel">Cancel</button>
+          <button class="btn btn-primary" id="modalSaveBtn">
+            <i class="fa-solid fa-check"></i>
+            <span data-i18n="saveNote">Save Note</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Note Settings Context Menu (Delete, Edit, Copy, Download TXT) -->
+  <div class="context-menu" id="noteMenu">
+    <button class="context-item" id="menuEdit">
+      <i class="fa-solid fa-pen-to-square"></i>
+      <span data-i18n="edit">Edit</span>
+    </button>
+    <button class="context-item" id="menuCopy">
+      <i class="fa-solid fa-copy"></i>
+      <span data-i18n="copy">Copy Content</span>
+    </button>
+    <button class="context-item" id="menuDownload">
+      <i class="fa-solid fa-file-arrow-down"></i>
+      <span data-i18n="downloadTxt">Download as .txt</span>
+    </button>
+    <div class="context-divider"></div>
+    <button class="context-item text-danger" id="menuDelete">
+      <i class="fa-solid fa-trash-can"></i>
+      <span data-i18n="delete">Delete</span>
+    </button>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast" id="toast">
+    <i class="fa-solid fa-circle-check toast-icon"></i>
+    <span class="toast-message" id="toastMessage">Saved successfully</span>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
