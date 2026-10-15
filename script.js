@@ -380,7 +380,7 @@ class NoteApp {
   loadNotes() {
     try {
       const data = localStorage.getItem("offline_notes_data");
-      return data ? JSON.parse(data) : this.getDefaultStarterNotes();
+      return data ? JSON.parse(data) : [];
     } catch (e) {
       console.error("Failed to parse notes from localStorage:", e);
       return [];
@@ -410,33 +410,6 @@ class NoteApp {
     } catch (e) {
       console.error("Failed to save to localStorage:", e);
     }
-  }
-
-  getDefaultStarterNotes() {
-    return [
-      {
-        id: "starter-1",
-        title: "Welcome to Offline Notes! 🚀",
-        content: "• Completely private & offline — no login required.\n• Saves directly inside your device's browser.\n• Supports multiple languages (English default, Arabic, and more) with LTR & RTL.\n• Backup anytime via JSON export.\n• Created with care by Hamza Gamal.",
-        category: "Ideas",
-        color: "indigo",
-        starred: true,
-        pinned: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: "starter-2",
-        title: "أهلاً بك في تطبيق الملاحظات الخاص بك 📝",
-        content: "هذا التطبيق يعمل بالكامل دون الحاجة للاتصال بالإنترنت وبدون تسجيل دخول. بياناتك مشفرة ومحفوظة محلياً على جهازك فقط. يمكنك التبديل بين اللغات والوضع الليلي/النهاري في أي وقت.",
-        category: "Personal",
-        color: "emerald",
-        starred: false,
-        pinned: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
   }
 
   // Initialize DOM References
