@@ -69,6 +69,11 @@ const TRANSLATIONS = {
     lockedNoteHiddenTitle: "Locked Note",
     clickToUnlock: "Click to unlock and view content",
     protectedBadge: "Protected",
+    signInWithGoogle: "Sign in with Google",
+    signOut: "Sign Out",
+    signedInAs: "Signed in as",
+    signedOutSuccess: "Signed out successfully",
+    signedInSuccess: "Signed in successfully!",
     langName: "English"
   },
   ar: {
@@ -134,6 +139,11 @@ const TRANSLATIONS = {
     lockedNoteHiddenTitle: "ملاحظة مغلقة ومحمية",
     clickToUnlock: "اضغط لإدخال كلمة السر وعرض الملاحظة",
     protectedBadge: "محمية",
+    signInWithGoogle: "تسجيل الدخول بجوجل",
+    signOut: "تسجيل الخروج",
+    signedInAs: "تم تسجيل الدخول كـ",
+    signedOutSuccess: "تم تسجيل الخروج بنجاح",
+    signedInSuccess: "تم تسجيل الدخول بنجاح!",
     langName: "العربية"
   }
 };
@@ -152,12 +162,37 @@ class NoteApp {
     this.isPinned = false;
     this.isStarred = false;
     this.activeContextMenuNoteId = null;
+    this.googleClientId = "592566520210-4ftbc8sf9ftost7s7h7t6ud8nq1mu55v.apps.googleusercontent.com";
+    this.currentUser = this.loadCurrentUser();
 
     this.initElements();
+    this.initGoogleAuth();
     this.initEvents();
     this.applyTheme(this.currentTheme);
     this.applyLanguage(this.currentLanguage);
     this.render();
+  }
+
+  // Auth Storage Helpers
+  loadCurrentUser() {
+    try {
+      const data = localStorage.getItem("offline_notes_user");
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  saveCurrentUser(user) {
+    try {
+      if (user) {
+        localStorage.setItem("offline_notes_user", JSON.stringify(user));
+      } else {
+        localStorage.removeItem("offline_notes_user");
+      }
+    } catch (e) {
+      console.error("Failed to save user:", e);
+    }
   }
 
   // LocalStorage Helpers
@@ -290,6 +325,16 @@ class NoteApp {
     // Import / Export
     this.exportDataBtn = document.getElementById("exportDataBtn");
     this.importDataInput = document.getElementById("importDataInput");
+
+    // Google Auth Elements
+    this.authLoggedOut = document.getElementById("authLoggedOut");
+    this.authLoggedIn = document.getElementById("authLoggedIn");
+    this.customGoogleSignInBtn = document.getElementById("customGoogleSignInBtn");
+    this.googleBtnContainer = document.getElementById("googleBtnContainer");
+    this.userAvatar = document.getElementById("userAvatar");
+    this.userName = document.getElementById("userName");
+    this.userEmail = document.getElementById("userEmail");
+    this.signOutBtn = document.getElementById("signOutBtn");
   }
 
   // Bind Event Listeners
@@ -462,6 +507,140 @@ class NoteApp {
 
     // Toast Undo Action
     this.toastUndoBtn.addEventListener("click", () => this.undoDelete());
+
+    // Google Sign In & Sign Out
+    if (this.customGoogleSignInBtn) {
+      this.customGoogleSignInBtn.addEventListener("click", () => this.promptGoogleSignIn());
+    }
+    if (this.signOutBtn) {
+      this.signOutBtn.addEventListener("click", () => this.signOut());
+    }
+  }
+
+  // --- Google Identity Services Auth ---
+  initGoogleAuth() {
+    this.renderAuthState();
+
+    const setupGsi = () => {
+      if (typeof google !== "undefined" && google.accounts && google.accounts.id) {
+        try {
+          google.accounts.id.initialize({
+            client_id: this.googleClientId,
+            callback: (response) => this.handleGoogleCredentialResponse(response),
+            auto_select: false,
+            cancel_on_tap_outside: true
+          });
+
+          // Render official button inside container if user is logged out
+          if (!this.currentUser && this.googleBtnContainer) {
+            google.accounts.id.renderButton(this.googleBtnContainer, {
+              theme: this.currentTheme === "dark" ? "filled_black" : "outline",
+              size: "large",
+              shape: "pill",
+              text: "signin_with",
+              width: 210,
+              locale: this.currentLanguage
+            });
+            // Hide custom button if official button renders successfully
+            if (this.customGoogleSignInBtn) {
+              this.customGoogleSignInBtn.style.display = "none";
+            }
+          }
+        } catch (e) {
+          console.warn("Google Accounts Init Notice:", e);
+        }
+      }
+    };
+
+    if (typeof google !== "undefined" && google.accounts) {
+      setupGsi();
+    } else {
+      window.addEventListener("load", setupGsi);
+      setTimeout(setupGsi, 1500);
+    }
+  }
+
+  parseJwt(token) {
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      console.error("Failed to parse JWT:", e);
+      return null;
+    }
+  }
+
+  handleGoogleCredentialResponse(response) {
+    if (!response || !response.credential) return;
+
+    const payload = this.parseJwt(response.credential);
+    if (payload) {
+      this.currentUser = {
+        id: payload.sub,
+        name: payload.name || payload.given_name || "User",
+        email: payload.email,
+        picture: payload.picture || "logo.svg"
+      };
+
+      this.saveCurrentUser(this.currentUser);
+      this.renderAuthState();
+      this.showToast(`${this.t("signedInSuccess")} (${this.currentUser.name})`);
+    }
+  }
+
+  promptGoogleSignIn() {
+    if (typeof google !== "undefined" && google.accounts && google.accounts.id) {
+      google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          console.log("OneTap dismissed or not displayed:", notification.getNotDisplayedReason());
+        }
+      });
+    } else {
+      this.showToast("Loading Google Sign-In...", false);
+    }
+  }
+
+  signOut() {
+    if (this.currentUser && typeof google !== "undefined" && google.accounts && google.accounts.id) {
+      google.accounts.id.disableAutoSelect();
+    }
+    this.currentUser = null;
+    this.saveCurrentUser(null);
+    this.renderAuthState();
+    this.showToast(this.t("signedOutSuccess"));
+
+    // Re-init button
+    this.initGoogleAuth();
+  }
+
+  renderAuthState() {
+    if (!this.authLoggedOut || !this.authLoggedIn) return;
+
+    if (this.currentUser) {
+      this.authLoggedOut.style.display = "none";
+      this.authLoggedIn.style.display = "flex";
+
+      if (this.userAvatar) {
+        this.userAvatar.src = this.currentUser.picture || "logo.svg";
+        this.userAvatar.alt = this.currentUser.name;
+      }
+      if (this.userName) {
+        this.userName.textContent = this.currentUser.name;
+      }
+      if (this.userEmail) {
+        this.userEmail.textContent = this.currentUser.email;
+      }
+    } else {
+      this.authLoggedOut.style.display = "block";
+      this.authLoggedIn.style.display = "none";
+    }
   }
 
   toggleSidebar(open) {
@@ -486,6 +665,19 @@ class NoteApp {
     } else {
       this.themeIcon.className = "fa-solid fa-sun";
       this.themeToggleBtn.title = "Switch to Light Mode";
+    }
+
+    if (!this.currentUser && typeof google !== "undefined" && google.accounts && google.accounts.id && this.googleBtnContainer) {
+      try {
+        google.accounts.id.renderButton(this.googleBtnContainer, {
+          theme: theme === "dark" ? "filled_black" : "outline",
+          size: "large",
+          shape: "pill",
+          text: "signin_with",
+          width: 210,
+          locale: this.currentLanguage
+        });
+      } catch (e) {}
     }
   }
 
