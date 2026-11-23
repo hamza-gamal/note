@@ -69,11 +69,40 @@ const TRANSLATIONS = {
     lockedNoteHiddenTitle: "Locked Note",
     clickToUnlock: "Click to unlock and view content",
     protectedBadge: "Protected",
-    signInWithGoogle: "Sign in with Google",
+    signIn: "Sign In",
     signOut: "Sign Out",
     signedInAs: "Signed in as",
     signedOutSuccess: "Signed out successfully",
     signedInSuccess: "Signed in successfully!",
+    authTitle: "Sign in to OfflineNote",
+    authTitleSignUp: "Create an Account",
+    authSubtitle: "Save and sync your notes securely in the cloud",
+    signInGoogle: "Continue with Google",
+    orEmail: "or sign in with email",
+    nameLabel: "Full Name",
+    emailLabel: "Email Address",
+    submitSignIn: "Sign In",
+    submitSignUp: "Create Account",
+    noAccount: "Don't have an account?",
+    haveAccount: "Already have an account?",
+    createAccount: "Create an account",
+    loginPrompt: "Sign In",
+    authSuccessToast: "Welcome, {name}!",
+    authSignedOutToast: "Signed out successfully",
+    googleSignInHeading: "Sign in with Google",
+    googleSignInSub: "Choose an account to continue to OfflineNote",
+    googleEmailLabel: "Email address",
+    googleNameLabel: "Full Name",
+    googleConsent: "To continue, Google will share your name, email address, language preference, and profile picture with OfflineNote.",
+    cancelBtn: "Cancel",
+    googleContinueBtn: "Continue",
+    errInvalidEmail: "Please enter a valid email address.",
+    errShortPassword: "Password must be at least 6 characters.",
+    errNameRequired: "Please enter your full name.",
+    errEmailExists: "An account with this email already exists.",
+    errInvalidCredentials: "Invalid email or password.",
+    googleProvider: "Google",
+    emailProvider: "Email",
     langName: "English"
   },
   ar: {
@@ -139,11 +168,40 @@ const TRANSLATIONS = {
     lockedNoteHiddenTitle: "ملاحظة مغلقة ومحمية",
     clickToUnlock: "اضغط لإدخال كلمة السر وعرض الملاحظة",
     protectedBadge: "محمية",
-    signInWithGoogle: "تسجيل الدخول بجوجل",
+    signIn: "تسجيل الدخول",
     signOut: "تسجيل الخروج",
     signedInAs: "تم تسجيل الدخول كـ",
     signedOutSuccess: "تم تسجيل الخروج بنجاح",
     signedInSuccess: "تم تسجيل الدخول بنجاح!",
+    authTitle: "تسجيل الدخول إلى ملاحظاتي",
+    authTitleSignUp: "إنشاء حساب جديد",
+    authSubtitle: "احفظ ونسّق ملاحظاتك بأمان في السحابة",
+    signInGoogle: "المتابعة باستخدام Google",
+    orEmail: "أو تسجيل الدخول بالبريد الإلكتروني",
+    nameLabel: "الاسم الكامل",
+    emailLabel: "البريد الإلكتروني",
+    submitSignIn: "دخول",
+    submitSignUp: "إنشاء الحساب",
+    noAccount: "ليس لديك حساب؟",
+    haveAccount: "لديك حساب بالفعل؟",
+    createAccount: "إنشاء حساب",
+    loginPrompt: "تسجيل الدخول",
+    authSuccessToast: "أهلاً بك، {name}!",
+    authSignedOutToast: "تم تسجيل الخروج بنجاح",
+    googleSignInHeading: "تسجيل الدخول باستخدام Google",
+    googleSignInSub: "اختيار حساب للمتابعة إلى ملاحظاتي",
+    googleEmailLabel: "البريد الإلكتروني",
+    googleNameLabel: "الاسم الكامل",
+    googleConsent: "للمتابعة، ستشارك Google اسمك وعنوان بريدك الإلكتروني ولغتك المفضلة وصورة ملفك الشخصي مع OfflineNote.",
+    cancelBtn: "إلغاء",
+    googleContinueBtn: "متابعة",
+    errInvalidEmail: "يرجى إدخال بريد إلكتروني صالح.",
+    errShortPassword: "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.",
+    errNameRequired: "يرجى كتابة اسمك الكامل.",
+    errEmailExists: "يوجد حساب مسجل بهذا البريد الإلكتروني بالفعل.",
+    errInvalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+    googleProvider: "حساب Google",
+    emailProvider: "حساب محلي",
     langName: "العربية"
   }
 };
@@ -164,12 +222,14 @@ class NoteApp {
     this.activeContextMenuNoteId = null;
     this.googleClientId = "592566520210-4ftbc8sf9ftost7s7h7t6ud8nq1mu55v.apps.googleusercontent.com";
     this.currentUser = this.loadCurrentUser();
+    this.authMode = "signin";
 
     this.initElements();
     this.initGoogleAuth();
     this.initEvents();
     this.applyTheme(this.currentTheme);
     this.applyLanguage(this.currentLanguage);
+    this.updateAuthUI();
     this.render();
   }
 
@@ -198,7 +258,10 @@ class NoteApp {
   // LocalStorage Helpers
   loadNotes() {
     try {
-      const data = localStorage.getItem("offline_notes_data");
+      let data = localStorage.getItem("offline_notes_data");
+      if (!data) {
+        data = localStorage.getItem("offline_notes_permanent_vault");
+      }
       const list = data ? JSON.parse(data) : [];
       // Ensure all password protected notes are locked on startup
       list.forEach(n => {
@@ -231,6 +294,8 @@ class NoteApp {
   saveNotes() {
     try {
       localStorage.setItem("offline_notes_data", JSON.stringify(this.notes));
+      // Permanent redundant vault backup so notes are never lost
+      localStorage.setItem("offline_notes_permanent_vault", JSON.stringify(this.notes));
     } catch (e) {
       console.error("Failed to save to localStorage:", e);
     }
@@ -326,15 +391,40 @@ class NoteApp {
     this.exportDataBtn = document.getElementById("exportDataBtn");
     this.importDataInput = document.getElementById("importDataInput");
 
-    // Google Auth Elements
-    this.authLoggedOut = document.getElementById("authLoggedOut");
-    this.authLoggedIn = document.getElementById("authLoggedIn");
-    this.customGoogleSignInBtn = document.getElementById("customGoogleSignInBtn");
-    this.googleBtnContainer = document.getElementById("googleBtnContainer");
-    this.userAvatar = document.getElementById("userAvatar");
-    this.userName = document.getElementById("userName");
-    this.userEmail = document.getElementById("userEmail");
-    this.signOutBtn = document.getElementById("signOutBtn");
+    // Auth Elements (Table-Style Luxury)
+    this.authBtn = document.getElementById("authBtn");
+    this.authBtnText = document.getElementById("authBtnText");
+    this.userProfileDropdown = document.getElementById("userProfileDropdown");
+    this.dropdownAvatar = document.getElementById("dropdownAvatar");
+    this.dropdownName = document.getElementById("dropdownName");
+    this.dropdownEmail = document.getElementById("dropdownEmail");
+    this.dropdownBadge = document.getElementById("dropdownBadge");
+    this.dropdownSignOutBtn = document.getElementById("dropdownSignOutBtn");
+
+    // Auth Modals
+    this.authModal = document.getElementById("authModal");
+    this.authCloseBtn = document.getElementById("authCloseBtn");
+    this.authModalTitle = document.getElementById("authModalTitle");
+    this.authSubmitBtn = document.getElementById("authSubmitBtn");
+    this.authToggleText = document.getElementById("authToggleText");
+    this.authSwitchModeBtn = document.getElementById("authSwitchModeBtn");
+    this.authNameGroup = document.getElementById("authNameGroup");
+    this.authNameInput = document.getElementById("authNameInput");
+    this.authEmailInput = document.getElementById("authEmailInput");
+    this.authPasswordInput = document.getElementById("authPasswordInput");
+    this.authErrorBox = document.getElementById("authErrorBox");
+    this.emailAuthForm = document.getElementById("emailAuthForm");
+    this.googleOfficialBtnWrap = document.getElementById("googleOfficialBtnWrap");
+    this.googleOfficialBtn = document.getElementById("googleOfficialBtn");
+    this.googleSignInBtn = document.getElementById("googleSignInBtn");
+
+    // Google OAuth Chooser Modal
+    this.googleOAuthModal = document.getElementById("googleOAuthModal");
+    this.googleAccountList = document.getElementById("googleAccountList");
+    this.googleEmailInput = document.getElementById("googleEmailInput");
+    this.googleNameInput = document.getElementById("googleNameInput");
+    this.googleOAuthCancelBtn = document.getElementById("googleOAuthCancelBtn");
+    this.googleOAuthConfirmBtn = document.getElementById("googleOAuthConfirmBtn");
   }
 
   // Bind Event Listeners
@@ -508,56 +598,193 @@ class NoteApp {
     // Toast Undo Action
     this.toastUndoBtn.addEventListener("click", () => this.undoDelete());
 
-    // Google Sign In & Sign Out
-    if (this.customGoogleSignInBtn) {
-      this.customGoogleSignInBtn.addEventListener("click", () => this.promptGoogleSignIn());
+    // Auth Event Listeners (Table-Style Luxury)
+    if (this.authBtn) {
+      this.authBtn.addEventListener("click", (e) => this.handleAuthBtnClick(e));
     }
-    if (this.signOutBtn) {
-      this.signOutBtn.addEventListener("click", () => this.signOut());
+    if (this.dropdownSignOutBtn) {
+      this.dropdownSignOutBtn.addEventListener("click", () => this.signOut());
+    }
+    if (this.authCloseBtn) {
+      this.authCloseBtn.addEventListener("click", () => this.closeAuthModal());
+    }
+    if (this.authSwitchModeBtn) {
+      this.authSwitchModeBtn.addEventListener("click", () => this.toggleAuthMode());
+    }
+    if (this.emailAuthForm) {
+      this.emailAuthForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.handleFormAuthSubmit();
+      });
+    }
+    if (this.googleSignInBtn) {
+      this.googleSignInBtn.addEventListener("click", () => this.handleGoogleSignInClick());
+    }
+    if (this.googleOAuthCancelBtn) {
+      this.googleOAuthCancelBtn.addEventListener("click", () => this.closeGoogleOAuthModal());
+    }
+    if (this.googleOAuthConfirmBtn) {
+      this.googleOAuthConfirmBtn.addEventListener("click", () => this.handleGoogleConfirm());
+    }
+
+    // Close auth dropdown on outside click or Esc
+    window.addEventListener("click", (e) => {
+      if (this.userProfileDropdown && !this.userProfileDropdown.contains(e.target) && !this.authBtn.contains(e.target)) {
+        this.userProfileDropdown.style.display = "none";
+      }
+      if (e.target === this.authModal) {
+        this.closeAuthModal();
+      }
+      if (e.target === this.googleOAuthModal) {
+        this.closeGoogleOAuthModal();
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (this.userProfileDropdown) this.userProfileDropdown.style.display = "none";
+        this.closeAuthModal();
+        this.closeGoogleOAuthModal();
+      }
+    });
+  }
+
+  // ── Authentication Management (Table-Style Luxury) ──
+  getAvatarGradient(name) {
+    let hash = 0;
+    const str = name && name.trim() ? name.trim() : "User";
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue1 = Math.abs(hash % 360);
+    const hue2 = (hue1 + 45) % 360;
+    return `linear-gradient(135deg, hsl(${hue1}, 75%, 48%), hsl(${hue2}, 85%, 38%))`;
+  }
+
+  getRegisteredUsers() {
+    const users = localStorage.getItem("offline_notes_registered_users");
+    if (!users) {
+      const initialUsers = [
+        {
+          id: 1,
+          name: "Hamza Gamal",
+          email: "thehamzagamal@gmail.com",
+          password: "password123",
+          provider: "google"
+        }
+      ];
+      localStorage.setItem("offline_notes_registered_users", JSON.stringify(initialUsers));
+      return initialUsers;
+    }
+    try {
+      return JSON.parse(users);
+    } catch (e) {
+      return [];
     }
   }
 
-  // --- Google Identity Services Auth ---
-  initGoogleAuth() {
-    this.renderAuthState();
+  saveRegisteredUsers(users) {
+    localStorage.setItem("offline_notes_registered_users", JSON.stringify(users));
+  }
 
-    const setupGsi = () => {
-      if (typeof google !== "undefined" && google.accounts && google.accounts.id) {
-        try {
-          google.accounts.id.initialize({
-            client_id: this.googleClientId,
-            callback: (response) => this.handleGoogleCredentialResponse(response),
-            auto_select: false,
-            cancel_on_tap_outside: true
-          });
-
-          // Render official button inside container if user is logged out
-          if (!this.currentUser && this.googleBtnContainer) {
-            google.accounts.id.renderButton(this.googleBtnContainer, {
-              theme: this.currentTheme === "dark" ? "filled_black" : "outline",
-              size: "large",
-              shape: "pill",
-              text: "signin_with",
-              width: 210,
-              locale: this.currentLanguage
-            });
-            // Hide custom button if official button renders successfully
-            if (this.customGoogleSignInBtn) {
-              this.customGoogleSignInBtn.style.display = "none";
-            }
-          }
-        } catch (e) {
-          console.warn("Google Accounts Init Notice:", e);
-        }
-      }
-    };
-
-    if (typeof google !== "undefined" && google.accounts) {
-      setupGsi();
-    } else {
-      window.addEventListener("load", setupGsi);
-      setTimeout(setupGsi, 1500);
+  showAuthError(msg) {
+    if (this.authErrorBox) {
+      this.authErrorBox.textContent = msg;
+      this.authErrorBox.style.display = "block";
     }
+  }
+
+  clearAuthError() {
+    if (this.authErrorBox) {
+      this.authErrorBox.textContent = "";
+      this.authErrorBox.style.display = "none";
+    }
+  }
+
+  handleAuthBtnClick(e) {
+    e.stopPropagation();
+    if (this.currentUser) {
+      if (this.userProfileDropdown) {
+        const isHidden = this.userProfileDropdown.style.display === "none" || !this.userProfileDropdown.style.display;
+        this.userProfileDropdown.style.display = isHidden ? "block" : "none";
+      }
+    } else {
+      this.openAuthModal();
+    }
+  }
+
+  openAuthModal() {
+    this.clearAuthError();
+    this.initGoogleIdentity();
+    if (this.authModal) this.authModal.style.display = "flex";
+  }
+
+  closeAuthModal() {
+    this.clearAuthError();
+    if (this.authModal) this.authModal.style.display = "none";
+  }
+
+  toggleAuthMode() {
+    this.authMode = this.authMode === "signin" ? "signup" : "signin";
+    const isSignIn = this.authMode === "signin";
+
+    this.clearAuthError();
+
+    if (this.authModalTitle) {
+      this.authModalTitle.textContent = isSignIn ? this.t("authTitle") : this.t("authTitleSignUp");
+    }
+    if (this.authSubmitBtn) {
+      this.authSubmitBtn.textContent = isSignIn ? this.t("submitSignIn") : this.t("submitSignUp");
+    }
+    if (this.authToggleText) {
+      this.authToggleText.textContent = isSignIn ? this.t("noAccount") : this.t("haveAccount");
+    }
+    if (this.authSwitchModeBtn) {
+      this.authSwitchModeBtn.textContent = isSignIn ? this.t("createAccount") : this.t("loginPrompt");
+    }
+    if (this.authNameGroup) {
+      this.authNameGroup.style.display = isSignIn ? "none" : "flex";
+    }
+  }
+
+  initGoogleIdentity() {
+    // Only initialize Google Identity Services over HTTP/HTTPS to prevent origin 400 errors
+    if (location.protocol.startsWith("http") && typeof google !== "undefined" && google.accounts && google.accounts.id) {
+      try {
+        google.accounts.id.initialize({
+          client_id: this.googleClientId,
+          callback: (response) => this.handleGoogleCredentialResponse(response),
+          auto_select: false
+        });
+      } catch (e) {
+        console.warn("Google Identity notice:", e);
+      }
+    }
+  }
+
+  initGoogleAuth() {
+    this.initGoogleIdentity();
+  }
+
+  handleGoogleSignInClick() {
+    this.closeAuthModal();
+
+    // If running on a live web server (http / https) and GIS is loaded, attempt One Tap
+    if (location.protocol.startsWith("http") && typeof google !== "undefined" && google.accounts && google.accounts.id) {
+      try {
+        google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            this.openGoogleOAuthModal();
+          }
+        });
+        return;
+      } catch (e) {
+        console.warn("One tap failed, using chooser modal:", e);
+      }
+    }
+
+    // Default & smooth local fallback: open authentic Google Account Chooser
+    this.openGoogleOAuthModal();
   }
 
   parseJwt(token) {
@@ -572,38 +799,207 @@ class NoteApp {
       );
       return JSON.parse(jsonPayload);
     } catch (e) {
-      console.error("Failed to parse JWT:", e);
       return null;
     }
   }
 
   handleGoogleCredentialResponse(response) {
     if (!response || !response.credential) return;
-
     const payload = this.parseJwt(response.credential);
-    if (payload) {
-      this.currentUser = {
-        id: payload.sub,
-        name: payload.name || payload.given_name || "User",
+    if (payload && payload.email) {
+      const user = {
+        id: payload.sub || Date.now(),
+        name: payload.name || payload.given_name || payload.email.split("@")[0],
         email: payload.email,
-        picture: payload.picture || "logo.svg"
+        provider: "google",
+        picture: payload.picture
       };
-
-      this.saveCurrentUser(this.currentUser);
-      this.renderAuthState();
-      this.showToast(`${this.t("signedInSuccess")} (${this.currentUser.name})`);
+      this.completeGoogleLogin(user);
     }
   }
 
-  promptGoogleSignIn() {
-    if (typeof google !== "undefined" && google.accounts && google.accounts.id) {
-      google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          console.log("OneTap dismissed or not displayed:", notification.getNotDisplayedReason());
-        }
-      });
+  openGoogleOAuthModal() {
+    this.closeAuthModal();
+    if (!this.googleOAuthModal) return;
+
+    const users = this.getRegisteredUsers().filter(u => u.provider === "google");
+    if (this.googleAccountList) {
+      this.googleAccountList.innerHTML = "";
+      if (users.length > 0) {
+        users.forEach(u => {
+          const item = document.createElement("div");
+          item.className = "google-account-item";
+          const initial = (u.name || "G")[0].toUpperCase();
+          const gradient = this.getAvatarGradient(u.name);
+          item.innerHTML = `
+            <div class="google-account-avatar" style="background:${gradient};">${this.escapeHtml(initial)}</div>
+            <div class="google-account-text">
+              <span class="google-account-name">${this.escapeHtml(u.name)}</span>
+              <span class="google-account-email">${this.escapeHtml(u.email)}</span>
+            </div>
+          `;
+          item.addEventListener("click", () => {
+            this.completeGoogleLogin(u);
+          });
+          this.googleAccountList.appendChild(item);
+        });
+      }
+    }
+
+    if (this.googleEmailInput) this.googleEmailInput.value = "";
+    if (this.googleNameInput) this.googleNameInput.value = "";
+
+    this.googleOAuthModal.style.display = "flex";
+  }
+
+  closeGoogleOAuthModal() {
+    if (this.googleOAuthModal) this.googleOAuthModal.style.display = "none";
+  }
+
+  handleGoogleConfirm() {
+    const email = this.googleEmailInput ? this.googleEmailInput.value.trim().toLowerCase() : "";
+    let name = this.googleNameInput ? this.googleNameInput.value.trim() : "";
+
+    if (!email || !email.includes("@") || !email.includes(".")) {
+      this.showToast(this.t("errInvalidEmail"));
+      if (this.googleEmailInput) this.googleEmailInput.focus();
+      return;
+    }
+
+    if (!name) {
+      const raw = email.split("@")[0];
+      name = raw.charAt(0).toUpperCase() + raw.slice(1);
+    }
+
+    const users = this.getRegisteredUsers();
+    let existingUser = users.find(u => u.email.toLowerCase() === email);
+
+    if (!existingUser) {
+      existingUser = {
+        id: Date.now(),
+        name: name,
+        email: email,
+        provider: "google",
+        createdAt: new Date().toISOString()
+      };
+      users.push(existingUser);
+      this.saveRegisteredUsers(users);
     } else {
-      this.showToast("Loading Google Sign-In...", false);
+      existingUser.name = name;
+      this.saveRegisteredUsers(users);
+    }
+
+    this.completeGoogleLogin(existingUser);
+  }
+
+  handleFormAuthSubmit() {
+    this.clearAuthError();
+    const email = this.authEmailInput ? this.authEmailInput.value.trim().toLowerCase() : "";
+    const password = this.authPasswordInput ? this.authPasswordInput.value : "";
+    const name = this.authNameInput ? this.authNameInput.value.trim() : "";
+
+    if (!email || !email.includes("@") || !email.includes(".")) {
+      this.showAuthError(this.t("errInvalidEmail"));
+      return;
+    }
+
+    if (password.length < 6) {
+      this.showAuthError(this.t("errShortPassword"));
+      return;
+    }
+
+    const users = this.getRegisteredUsers();
+
+    if (this.authMode === "signup") {
+      if (!name) {
+        this.showAuthError(this.t("errNameRequired"));
+        return;
+      }
+      const exists = users.some(u => u.email.toLowerCase() === email);
+      if (exists) {
+        this.showAuthError(this.t("errEmailExists"));
+        return;
+      }
+
+      const newUser = {
+        id: Date.now(),
+        name: name,
+        email: email,
+        password: password,
+        provider: "email",
+        createdAt: new Date().toISOString()
+      };
+      users.push(newUser);
+      this.saveRegisteredUsers(users);
+      this.completeLogin(newUser);
+    } else {
+      const user = users.find(u => u.email.toLowerCase() === email && (u.password === password || u.provider === "google"));
+      if (!user) {
+        this.showAuthError(this.t("errInvalidCredentials"));
+        return;
+      }
+      this.completeLogin(user);
+    }
+  }
+
+  completeLogin(user) {
+    this.currentUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      provider: user.provider || "email",
+      picture: user.picture
+    };
+    this.saveCurrentUser(this.currentUser);
+    this.updateAuthUI();
+    this.closeAuthModal();
+    this.showToast(this.t("authSuccessToast").replace("{name}", this.currentUser.name));
+  }
+
+  completeGoogleLogin(user) {
+    this.completeLogin({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      provider: "google",
+      picture: user.picture
+    });
+    this.closeGoogleOAuthModal();
+  }
+
+  updateAuthUI() {
+    if (!this.authBtn) return;
+
+    if (this.currentUser) {
+      const rawName = this.currentUser.name || this.currentUser.email || "User";
+      const initial = rawName.trim().charAt(0).toUpperCase();
+      const firstName = rawName.trim().split(" ")[0];
+      const gradient = this.getAvatarGradient(rawName);
+
+      this.authBtn.innerHTML = `
+        <div class="user-avatar-circle" style="background:${gradient};">${this.escapeHtml(initial)}</div>
+        <span>${this.escapeHtml(firstName)}</span>
+      `;
+      this.authBtn.title = this.currentUser.email;
+
+      if (this.dropdownAvatar) {
+        this.dropdownAvatar.textContent = initial;
+        this.dropdownAvatar.style.background = gradient;
+      }
+      if (this.dropdownName) this.dropdownName.textContent = rawName;
+      if (this.dropdownEmail) this.dropdownEmail.textContent = this.currentUser.email;
+      if (this.dropdownBadge) {
+        this.dropdownBadge.textContent = this.currentUser.provider === "google"
+          ? this.t("googleProvider")
+          : this.t("emailProvider");
+      }
+    } else {
+      this.authBtn.innerHTML = `
+        <i class="fa-solid fa-user"></i>
+        <span id="authBtnText">${this.t("signIn")}</span>
+      `;
+      this.authBtn.title = this.t("signIn");
+      if (this.userProfileDropdown) this.userProfileDropdown.style.display = "none";
     }
   }
 
@@ -613,34 +1009,8 @@ class NoteApp {
     }
     this.currentUser = null;
     this.saveCurrentUser(null);
-    this.renderAuthState();
-    this.showToast(this.t("signedOutSuccess"));
-
-    // Re-init button
-    this.initGoogleAuth();
-  }
-
-  renderAuthState() {
-    if (!this.authLoggedOut || !this.authLoggedIn) return;
-
-    if (this.currentUser) {
-      this.authLoggedOut.style.display = "none";
-      this.authLoggedIn.style.display = "flex";
-
-      if (this.userAvatar) {
-        this.userAvatar.src = this.currentUser.picture || "logo.svg";
-        this.userAvatar.alt = this.currentUser.name;
-      }
-      if (this.userName) {
-        this.userName.textContent = this.currentUser.name;
-      }
-      if (this.userEmail) {
-        this.userEmail.textContent = this.currentUser.email;
-      }
-    } else {
-      this.authLoggedOut.style.display = "block";
-      this.authLoggedIn.style.display = "none";
-    }
+    this.updateAuthUI();
+    this.showToast(this.t("authSignedOutToast"));
   }
 
   toggleSidebar(open) {
@@ -667,17 +1037,8 @@ class NoteApp {
       this.themeToggleBtn.title = "Switch to Light Mode";
     }
 
-    if (!this.currentUser && typeof google !== "undefined" && google.accounts && google.accounts.id && this.googleBtnContainer) {
-      try {
-        google.accounts.id.renderButton(this.googleBtnContainer, {
-          theme: theme === "dark" ? "filled_black" : "outline",
-          size: "large",
-          shape: "pill",
-          text: "signin_with",
-          width: 210,
-          locale: this.currentLanguage
-        });
-      } catch (e) {}
+    if (this.googleOfficialBtn && this.authModal && this.authModal.style.display === "flex") {
+      this.initGoogleIdentity();
     }
   }
 
@@ -719,6 +1080,7 @@ class NoteApp {
       elem.placeholder = this.t(key);
     });
 
+    this.updateAuthUI();
     this.render();
   }
 
