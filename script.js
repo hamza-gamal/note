@@ -509,7 +509,10 @@ class NoteApp {
 
     // Google Keep Background Elements
     this.bgPalette = document.getElementById("bgPalette");
-    this.bgDots = document.querySelectorAll(".bg-dot[data-bg]");
+    this.bgDots = document.querySelectorAll(".bg-pill[data-bg]");
+    this.togglePasswordBarBtn = document.getElementById("togglePasswordBarBtn");
+    this.changeAvatarBtn = document.getElementById("changeAvatarBtn");
+    this.userAvatarFileInput = document.getElementById("userAvatarFileInput");
     this.bgCustomUploadBtn = document.getElementById("bgCustomUploadBtn");
     this.bgCustomInput = document.getElementById("bgCustomInput");
 
@@ -748,6 +751,33 @@ class NoteApp {
         });
       });
     }
+        if (this.togglePasswordBarBtn && this.notePasswordInput) {
+      this.togglePasswordBarBtn.addEventListener("click", () => {
+        const isHidden = this.notePasswordInput.style.display === "none";
+        this.notePasswordInput.style.display = isHidden ? "inline-block" : "none";
+        if (isHidden) this.notePasswordInput.focus();
+      });
+    }
+
+    if (this.changeAvatarBtn && this.userAvatarFileInput) {
+      this.changeAvatarBtn.addEventListener("click", () => this.userAvatarFileInput.click());
+      this.userAvatarFileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (this.currentUser) {
+            this.currentUser.picture = reader.result;
+            this.saveCurrentUser(this.currentUser);
+            this.updateAuthUI();
+            this.autoSaveToCloud();
+            this.showToast("Profile photo updated!");
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
     if (this.bgCustomUploadBtn && this.bgCustomInput) {
       this.bgCustomUploadBtn.addEventListener("click", () => this.bgCustomInput.click());
       this.bgCustomInput.addEventListener("change", (e) => {
@@ -2482,44 +2512,25 @@ class NoteApp {
   // ══════════════════════════════════════════════════════════════
   // FEATURE 3: AUTOMATIC ACCOUNT-KEYED CLOUD SYNC (NO MANUAL MODALS)
   // ══════════════════════════════════════════════════════════════
-  getAccountVaultKey() {
-    const email = (this.currentUser?.email || "thehamzagamal@gmail.com").toLowerCase().trim();
-    return "note_vault_" + email.replace(/[^a-z0-9]/g, "_");
-  }
-
+  // ══════════════════════════════════════════════════════════════
+  // FEATURE 3: DETERMINISTIC MASTER CLOUD SYNC ACROSS ALL DEVICES
+  // ══════════════════════════════════════════════════════════════
   async autoSyncAccount() {
     if (!this.currentUser) return;
-    const vaultKey = this.getAccountVaultKey();
-    let vaultId = localStorage.getItem("vault_id_" + vaultKey);
+    const emailKey = (this.currentUser.email || "thehamzagamal@gmail.com").toLowerCase().trim();
+    const MASTER_ENDPOINT = "https://api.restful-api.dev/objects/ff808181a09d98f701a21a36b0085a2c";
 
     try {
       this.isSyncing = true;
-      let res = null;
-      if (vaultId) {
-        res = await fetch(`https://api.restful-api.dev/objects/${vaultId}`);
-      }
+      const res = await fetch(MASTER_ENDPOINT);
+      if (res.ok) {
+        const cloudObj = await res.json();
+        const userData = cloudObj?.data?.users?.[emailKey];
 
-      if (!res || !res.ok) {
-        // Search cloud for this user's vault
-        const searchRes = await fetch("https://api.restful-api.dev/objects");
-        if (searchRes.ok) {
-          const list = await searchRes.json();
-          const match = Array.isArray(list) ? list.find(o => o.name === vaultKey) : null;
-          if (match) {
-            vaultId = match.id;
-            localStorage.setItem("vault_id_" + vaultKey, vaultId);
-            res = await fetch(`https://api.restful-api.dev/objects/${vaultId}`);
-          }
-        }
-      }
-
-      if (res && res.ok) {
-        const item = await res.json();
-        const cloudData = item.data;
-        if (cloudData && Array.isArray(cloudData.notes)) {
-          // Merge local and cloud notes seamlessly
+        if (userData && Array.isArray(userData.notes)) {
+          // Merge local and cloud notes
           const localMap = new Map(this.notes.map(n => [n.id, n]));
-          cloudData.notes.forEach(remoteNote => {
+          userData.notes.forEach(remoteNote => {
             const local = localMap.get(remoteNote.id);
             if (!local) {
               localMap.set(remoteNote.id, remoteNote);
@@ -2532,20 +2543,25 @@ class NoteApp {
             }
           });
           this.notes = Array.from(localMap.values());
-          if (Array.isArray(cloudData.categories) && cloudData.categories.length > 0) {
-            this.categories = Array.from(new Set([...this.categories, ...cloudData.categories]));
+          if (Array.isArray(userData.categories)) {
+            this.categories = Array.from(new Set([...this.categories, ...userData.categories]));
             this.saveCategories();
+          }
+          if (userData.userProfile?.picture && !this.currentUser.picture) {
+            this.currentUser.picture = userData.userProfile.picture;
+            this.saveCurrentUser(this.currentUser);
+            this.updateAuthUI();
           }
           localStorage.setItem("offline_notes_data", JSON.stringify(this.notes));
           localStorage.setItem("offline_notes_permanent_vault", JSON.stringify(this.notes));
           this.render();
+        } else {
+          // First time this account is seen: sync current notes to cloud
+          await this.autoSaveToCloud();
         }
-      } else {
-        // Vault doesn't exist on cloud yet, create it!
-        await this.autoSaveToCloud();
       }
     } catch (err) {
-      console.warn("Silent account sync notice:", err);
+      console.warn("Auto sync notice:", err);
     } finally {
       this.isSyncing = false;
     }
@@ -2553,50 +2569,66 @@ class NoteApp {
 
   async autoSaveToCloud() {
     if (!this.currentUser) return;
-    const vaultKey = this.getAccountVaultKey();
-    let vaultId = localStorage.getItem("vault_id_" + vaultKey);
-
-    const payload = {
-      notes: this.notes.map(n => ({
-        ...n,
-        // Keep note text, category, color, bgImage, and light attachments
-        attachments: (n.attachments || []).map(a => ({
-          id: a.id,
-          type: a.type,
-          name: a.name,
-          size: a.size,
-          duration: a.duration,
-          dataUrl: a.dataUrl && a.dataUrl.length < 300000 ? a.dataUrl : ""
-        }))
-      })),
-      categories: this.categories,
-      updatedAt: Date.now()
-    };
+    const emailKey = (this.currentUser.email || "thehamzagamal@gmail.com").toLowerCase().trim();
+    const MASTER_ENDPOINT = "https://api.restful-api.dev/objects/ff808181a09d98f701a21a36b0085a2c";
 
     try {
-      if (!vaultId) {
-        const postRes = await fetch("https://api.restful-api.dev/objects", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: vaultKey, data: payload })
-        });
-        if (postRes.ok) {
-          const json = await postRes.json();
-          localStorage.setItem("vault_id_" + vaultKey, json.id);
+      let registry = { users: {} };
+      try {
+        const getRes = await fetch(MASTER_ENDPOINT);
+        if (getRes.ok) {
+          const cloudObj = await getRes.json();
+          registry = cloudObj.data || { users: {} };
+          if (!registry.users) registry.users = {};
         }
-      } else {
-        await fetch(`https://api.restful-api.dev/objects/${vaultId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: vaultKey, data: payload })
-        });
-      }
+      } catch (e) {}
+
+      registry.users[emailKey] = {
+        notes: this.notes.map(n => ({
+          id: n.id,
+          title: n.title,
+          content: n.content,
+          category: n.category,
+          color: n.color,
+          starred: n.starred,
+          pinned: n.pinned,
+          password: n.password,
+          bgImage: n.bgImage,
+          bgCustom: n.bgCustom && n.bgCustom.length < 500000 ? n.bgCustom : "",
+          attachments: (n.attachments || []).map(a => ({
+            id: a.id,
+            type: a.type,
+            name: a.name,
+            size: a.size,
+            duration: a.duration,
+            dataUrl: a.dataUrl && a.dataUrl.length < 300000 ? a.dataUrl : ""
+          })),
+          createdAt: n.createdAt,
+          updatedAt: n.updatedAt
+        })),
+        categories: this.categories,
+        userProfile: {
+          name: this.currentUser.name,
+          email: this.currentUser.email,
+          picture: this.currentUser.picture
+        },
+        updatedAt: Date.now()
+      };
+
+      await fetch(MASTER_ENDPOINT, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "OfflineNote_Master_Cloud_Registry",
+          data: registry
+        })
+      });
     } catch (e) {
-      console.warn("Silent auto save notice:", e);
+      console.warn("Auto save notice:", e);
     }
   }
 
-  // Obsolete helper stubs kept safe
+  // Safe stubs
   initCloudSync() {}
   updateSyncUI() {}
   openSyncModal() {}
@@ -2605,7 +2637,6 @@ class NoteApp {
   copySyncCode() {}
   handleLinkDeviceSubmit() {}
   linkDevice() {}
-
 }
 
 // Instantiate application once DOM is loaded

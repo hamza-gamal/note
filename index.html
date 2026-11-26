@@ -159,6 +159,11 @@
                 </div>
               </div>
               <div class="user-dropdown-divider"></div>
+              <button type="button" id="changeAvatarBtn" class="user-dropdown-item">
+                <i class="fa-solid fa-camera"></i>
+                <span>Change Profile Photo</span>
+              </button>
+              <input type="file" id="userAvatarFileInput" accept="image/*" style="display:none;" />
               <button type="button" id="dropdownSignOutBtn" class="user-dropdown-item danger">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
                 <span data-i18n="signOut">Sign Out</span>
@@ -228,18 +233,17 @@
         </div>
       </div>
 
-      <!-- Note Category & Color Tags -->
-      <div class="modal-meta-bar">
-        <div class="meta-field">
-          <label for="noteCategorySelect"><i class="fa-solid fa-tag"></i> <span data-i18n="category">Category</span>:</label>
-          <select id="noteCategorySelect">
-            <!-- Dynamically populated -->
-          </select>
-        </div>
+      <!-- Compact Unified Editor Toolbar -->
+      <div class="editor-compact-toolbar">
+        <div class="toolbar-left">
+          <!-- Folder select -->
+          <div class="toolbar-item category-select-wrap">
+            <i class="fa-solid fa-folder"></i>
+            <select id="noteCategorySelect" class="compact-select"></select>
+          </div>
 
-        <div class="meta-field">
-          <label><i class="fa-solid fa-palette"></i> <span data-i18n="color">Color</span>:</label>
-          <div class="color-palette" id="colorPalette">
+          <!-- Color dots -->
+          <div class="toolbar-item color-palette" id="colorPalette">
             <button type="button" class="color-dot active" data-color="default" style="background: var(--card-bg);" title="Default"></button>
             <button type="button" class="color-dot" data-color="rose" style="background: #f43f5e;" title="Rose"></button>
             <button type="button" class="color-dot" data-color="amber" style="background: #f59e0b;" title="Amber"></button>
@@ -248,69 +252,37 @@
             <button type="button" class="color-dot" data-color="indigo" style="background: #6366f1;" title="Indigo"></button>
             <button type="button" class="color-dot" data-color="purple" style="background: #a855f7;" title="Purple"></button>
           </div>
-        </div>
 
-        <!-- Google Keep-style Note Background Themes -->
-        <div class="meta-field bg-meta-field">
-          <label><i class="fa-regular fa-image"></i> <span data-i18n="bgTheme">Background</span>:</label>
-          <div class="bg-palette" id="bgPalette">
-            <button type="button" class="bg-dot active" data-bg="none" title="Default / بدون خلفية"><i class="fa-solid fa-ban"></i></button>
-            <button type="button" class="bg-dot" data-bg="groceries" title="Groceries / مشتريات">🛒</button>
-            <button type="button" class="bg-dot" data-bg="food" title="Food / طبخ ووصفات">🍳</button>
-            <button type="button" class="bg-dot" data-bg="music" title="Music / موسيقى">🎧</button>
-            <button type="button" class="bg-dot" data-bg="study" title="Study & Notes / دراسة">📚</button>
-            <button type="button" class="bg-dot" data-bg="travel" title="Places & Travel / سفر">✈️</button>
-            <button type="button" class="bg-dot" data-bg="celebration" title="Celebration / مناسبات">🎉</button>
-            <button type="button" class="bg-dot" data-bg="night" title="Night / هدوء">🌙</button>
-            <button type="button" class="bg-dot bg-custom-btn" id="bgCustomUploadBtn" title="Custom Photo / صورة من جهازك">
-              <i class="fa-solid fa-arrow-up-from-bracket"></i>
-            </button>
+          <!-- Google Keep Theme Backgrounds (Minimal Vector Pills) -->
+          <div class="toolbar-item bg-palette" id="bgPalette">
+            <button type="button" class="bg-pill active" data-bg="none" title="No Background"><i class="fa-solid fa-ban"></i></button>
+            <button type="button" class="bg-pill" data-bg="groceries" title="Groceries / مشتريات"><i class="fa-solid fa-cart-shopping"></i></button>
+            <button type="button" class="bg-pill" data-bg="food" title="Food / طبخ"><i class="fa-solid fa-utensils"></i></button>
+            <button type="button" class="bg-pill" data-bg="music" title="Music / موسيقى"><i class="fa-solid fa-music"></i></button>
+            <button type="button" class="bg-pill" data-bg="study" title="Study / دراسة"><i class="fa-solid fa-book"></i></button>
+            <button type="button" class="bg-pill" data-bg="travel" title="Travel / سفر"><i class="fa-solid fa-plane"></i></button>
+            <button type="button" class="bg-pill" data-bg="celebration" title="Celebration / مناسبة"><i class="fa-solid fa-champagne-glasses"></i></button>
+            <button type="button" class="bg-pill" data-bg="night" title="Night / هدوء"><i class="fa-solid fa-moon"></i></button>
+            <button type="button" class="bg-pill bg-custom-btn" id="bgCustomUploadBtn" title="Upload Custom Photo"><i class="fa-solid fa-image"></i></button>
             <input type="file" id="bgCustomInput" accept="image/*" style="display:none;" />
           </div>
         </div>
 
-        <!-- Optional Password Lock Field -->
-        <div class="meta-field password-meta-field">
-          <label for="notePasswordInput"><i class="fa-solid fa-lock"></i> <span data-i18n="passwordLabel">Password</span>:</label>
-          <div class="password-input-wrap">
-            <input type="password" id="notePasswordInput" placeholder="Optional password..." data-i18n-placeholder="passwordPlaceholder" />
-            <button type="button" class="toggle-pwd-visibility-btn" id="togglePwdVisibilityBtn" title="Toggle password visibility">
-              <i class="fa-regular fa-eye"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Media Toolbar (Photos, Voice Notes, Video, Files) -->
-      <div class="editor-media-toolbar">
-        <div class="media-btn-group">
-          <button type="button" class="media-tool-btn" id="addPhotoBtn" title="Add Photo / صورة">
-            <i class="fa-regular fa-image"></i>
-            <span data-i18n="addPhoto">Photo</span>
-          </button>
+        <div class="toolbar-right">
+          <!-- Media tools -->
+          <button type="button" class="tool-btn" id="addPhotoBtn" title="Add Photo / صورة"><i class="fa-regular fa-image"></i></button>
           <input type="file" id="mediaPhotoInput" accept="image/*" multiple style="display:none;" />
 
-          <button type="button" class="media-tool-btn" id="recordVoiceBtn" title="Record Voice Note / تسجيل صوتي">
-            <i class="fa-solid fa-microphone"></i>
-            <span data-i18n="recordVoice">Voice</span>
-          </button>
+          <button type="button" class="tool-btn" id="recordVoiceBtn" title="Record Voice / تسجيل صوتي"><i class="fa-solid fa-microphone"></i></button>
 
-          <button type="button" class="media-tool-btn" id="addVideoBtn" title="Add Video / فيديو">
-            <i class="fa-solid fa-video"></i>
-            <span data-i18n="addVideo">Video</span>
-          </button>
-          <input type="file" id="mediaVideoInput" accept="video/*" style="display:none;" />
-
-          <button type="button" class="media-tool-btn" id="addFileBtn" title="Attach File / إرفاق ملف">
-            <i class="fa-solid fa-paperclip"></i>
-            <span data-i18n="attachFile">File</span>
-          </button>
+          <button type="button" class="tool-btn" id="addFileBtn" title="Attach File / إرفاق ملف"><i class="fa-solid fa-paperclip"></i></button>
           <input type="file" id="mediaFileInput" style="display:none;" />
-        </div>
 
-        <div class="editor-format-hints">
-          <span class="format-hint-pill" title="Type - or * then space to make a bullet"><kbd>-</kbd> bullet</span>
-          <span class="format-hint-pill" title="Type 1. then space to make a numbered list"><kbd>1.</kbd> list</span>
+          <!-- Password Protect -->
+          <div class="password-pop-wrap">
+            <button type="button" class="tool-btn" id="togglePasswordBarBtn" title="Lock Note"><i class="fa-solid fa-lock"></i></button>
+            <input type="password" id="notePasswordInput" class="compact-pwd-input" placeholder="Password..." style="display:none;" />
+          </div>
         </div>
       </div>
 

@@ -2897,3 +2897,203 @@ body[data-theme="light"] .google-oauth-btn-confirm:hover {
   background-size: cover !important;
   background-position: center !important;
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   GUARANTEED MODAL LAYOUT & VISIBLE STICKY FOOTER
+   ══════════════════════════════════════════════════════════════ */
+#editorModal .modal-card {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 88vh !important;
+  height: auto !important;
+  overflow: hidden !important;
+  border-radius: 18px !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6) !important;
+  background: var(--bg-sidebar) !important;
+}
+
+#editorModal .modal-header {
+  flex-shrink: 0 !important;
+  padding: 14px 20px !important;
+  border-bottom: 1px solid var(--border-light) !important;
+}
+
+/* Compact Unified Toolbar */
+.editor-compact-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  padding: 8px 18px !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  flex-shrink: 0 !important;
+}
+.toolbar-left, .toolbar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+}
+.toolbar-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.category-select-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: var(--surface-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  padding: 4px 8px !important;
+  font-size: 0.8rem !important;
+  color: var(--text-muted) !important;
+}
+.compact-select {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-color) !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  outline: none !important;
+  cursor: pointer !important;
+}
+
+/* Google Keep Minimal Theme Pills */
+.bg-palette {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.bg-pill {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-muted) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.72rem !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  padding: 0 !important;
+}
+.bg-pill:hover {
+  background: rgba(244, 63, 94, 0.15) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  transform: scale(1.1) !important;
+}
+.bg-pill.active {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.5) !important;
+}
+
+.tool-btn {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: var(--surface-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-color) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.85rem !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+.tool-btn:hover {
+  background: rgba(244, 63, 94, 0.12) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+.password-pop-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.compact-pwd-input {
+  background: var(--surface-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  font-size: 0.78rem !important;
+  color: var(--text-color) !important;
+  width: 100px !important;
+}
+
+/* Modal Body & Textarea */
+#editorModal .modal-body {
+  flex: 1 1 auto !important;
+  min-height: 180px !important;
+  max-height: 52vh !important;
+  overflow-y: auto !important;
+  padding: 16px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+#editorModal .editor-textarea {
+  flex: 1 !important;
+  width: 100% !important;
+  min-height: 160px !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  resize: none !important;
+  font-family: inherit !important;
+  font-size: 1.02rem !important;
+  color: var(--text-color) !important;
+  line-height: 1.6 !important;
+}
+
+/* Guaranteed Sticky Modal Footer */
+#editorModal .modal-footer {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 20px !important;
+  background: var(--bg-sidebar) !important;
+  border-top: 1px solid var(--border-light) !important;
+  z-index: 20 !important;
+}
+#editorModal .modal-footer-btns {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+/* Mobile Responsive Optimization */
+@media (max-width: 768px) {
+  #editorModal {
+    padding: 8px !important;
+  }
+  #editorModal .modal-card {
+    max-height: 94vh !important;
+    width: 100% !important;
+    border-radius: 14px !important;
+  }
+  .editor-compact-toolbar {
+    padding: 6px 12px !important;
+    gap: 6px !important;
+  }
+  #editorModal .modal-footer {
+    padding: 10px 14px !important;
+  }
+  #editorModal .modal-footer-btns {
+    width: auto !important;
+  }
+  #editorModal .modal-footer-btns .btn {
+    padding: 8px 14px !important;
+    font-size: 0.85rem !important;
+  }
+}
