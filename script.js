@@ -103,7 +103,26 @@ const TRANSLATIONS = {
     errInvalidCredentials: "Invalid email or password.",
     googleProvider: "Google",
     emailProvider: "Email",
-    langName: "English"
+    langName: "English",
+    cloudSync: "Cloud Sync",
+    syncModalTitle: "Cloud Sync and Link Devices",
+    syncModalSubtitle: "Keep your notes seamlessly synced across mobile, laptop, and all your devices.",
+    yourSyncCode: "Your Device Link Code:",
+    syncCodeHint: "Enter this 6-character code on your phone or other device to link them instantly.",
+    syncQrHint: "Scan with your phone camera to open and sync all notes on mobile immediately!",
+    orLinkOther: "or link with another device",
+    enterCodeFromOther: "Enter Sync Code from your other device:",
+    linkBtn: "Link and Sync",
+    syncNow: "Sync Now",
+    addPhoto: "Photo",
+    recordVoice: "Voice",
+    addVideo: "Video",
+    attachFile: "File",
+    done: "Done",
+    download: "Download",
+    syncSuccess: "Synced with cloud successfully!",
+    syncLinked: "Device linked! All notes synced.",
+    syncError: "Sync error. Please try again.",
   },
   ar: {
     appName: "ملاحظاتي",
@@ -202,7 +221,26 @@ const TRANSLATIONS = {
     errInvalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
     googleProvider: "حساب Google",
     emailProvider: "حساب محلي",
-    langName: "العربية"
+    langName: "العربية",
+    cloudSync: "مزامنة السحابة",
+    syncModalTitle: "مزامنة السحابة وربط الأجهزة",
+    syncModalSubtitle: "احتفظ بملاحظاتك متزامنة بسلاسة بين الموبايل واللابتوب وكافة أجهزتك.",
+    yourSyncCode: "رمز ربط جهازك:",
+    syncCodeHint: "أدخل هذا الرمز على الموبايل أو أي جهاز آخر لربط الأجهزة فوراً.",
+    syncQrHint: "امسح الكود بكاميرا الموبايل لفتح ومزامنة كافة ملاحظاتك فوراً!",
+    orLinkOther: "أو اربط مع جهاز آخر",
+    enterCodeFromOther: "أدخل رمز المزامنة من جهازك الآخر:",
+    linkBtn: "ربط ومزامنة",
+    syncNow: "مزامنة فورية",
+    addPhoto: "صورة",
+    recordVoice: "صوت",
+    addVideo: "فيديو",
+    attachFile: "ملف",
+    done: "تم",
+    download: "تحميل",
+    syncSuccess: "تمت المزامنة مع السحابة بنجاح!",
+    syncLinked: "تم ربط الجهاز بنجاح ومزامنة كافة الملاحظات!",
+    syncError: "حدث خطأ أثناء المزامنة، يرجى المحاولة لاحقاً.",
   }
 };
 
@@ -224,12 +262,32 @@ class NoteApp {
     this.currentUser = this.loadCurrentUser();
     this.authMode = "signin";
 
+    // Media & Voice Recorder State
+    this.currentAttachments = [];
+    this.mediaDB = null;
+    this.mediaRecorder = null;
+    this.audioChunks = [];
+    this.recordStartTime = null;
+    this.recordInterval = null;
+    this.voiceStream = null;
+    this.activeAudio = null;
+
+    // Cloud Sync State
+    this.syncVaultId = localStorage.getItem("offline_notes_sync_vault_id") || null;
+    this.syncCode = localStorage.getItem("offline_notes_sync_code") || null;
+    this.lastSyncedAt = localStorage.getItem("offline_notes_last_synced") || null;
+    this.isSyncing = false;
+
     this.initElements();
+    this.initMediaDB();
+    this.setupAutoFormatting();
+    this.initCloudSync();
     this.initGoogleAuth();
     this.initEvents();
     this.applyTheme(this.currentTheme);
     this.applyLanguage(this.currentLanguage);
     this.updateAuthUI();
+    this.updateSyncUI();
     this.render();
   }
 
@@ -298,6 +356,10 @@ class NoteApp {
       localStorage.setItem("offline_notes_permanent_vault", JSON.stringify(this.notes));
     } catch (e) {
       console.error("Failed to save to localStorage:", e);
+    }
+    // Auto sync to cloud in background if connected
+    if (this.syncVaultId && !this.isSyncing) {
+      this.syncWithCloud(false);
     }
   }
 
@@ -425,6 +487,47 @@ class NoteApp {
     this.googleNameInput = document.getElementById("googleNameInput");
     this.googleOAuthCancelBtn = document.getElementById("googleOAuthCancelBtn");
     this.googleOAuthConfirmBtn = document.getElementById("googleOAuthConfirmBtn");
+
+    // Cloud Sync & Link Devices Elements
+    this.syncModalBtn = document.getElementById("syncModalBtn");
+    this.syncStatusIcon = document.getElementById("syncStatusIcon");
+    this.syncStatusText = document.getElementById("syncStatusText");
+    this.syncIndicatorDot = document.getElementById("syncIndicatorDot");
+    this.syncModal = document.getElementById("syncModal");
+    this.syncCloseBtn = document.getElementById("syncCloseBtn");
+    this.syncStatusBadge = document.getElementById("syncStatusBadge");
+    this.syncStatusBadgeText = document.getElementById("syncStatusBadgeText");
+    this.syncCodeDisplay = document.getElementById("syncCodeDisplay");
+    this.copySyncCodeBtn = document.getElementById("copySyncCodeBtn");
+    this.syncQrContainer = document.getElementById("syncQrContainer");
+    this.linkDeviceForm = document.getElementById("linkDeviceForm");
+    this.linkCodeInput = document.getElementById("linkCodeInput");
+    this.linkDeviceSubmitBtn = document.getElementById("linkDeviceSubmitBtn");
+    this.manualSyncNowBtn = document.getElementById("manualSyncNowBtn");
+    this.manualSyncIcon = document.getElementById("manualSyncIcon");
+    this.syncLastTime = document.getElementById("syncLastTime");
+
+    // Media & Voice Recorder Elements
+    this.addPhotoBtn = document.getElementById("addPhotoBtn");
+    this.mediaPhotoInput = document.getElementById("mediaPhotoInput");
+    this.recordVoiceBtn = document.getElementById("recordVoiceBtn");
+    this.addVideoBtn = document.getElementById("addVideoBtn");
+    this.mediaVideoInput = document.getElementById("mediaVideoInput");
+    this.addFileBtn = document.getElementById("addFileBtn");
+    this.mediaFileInput = document.getElementById("mediaFileInput");
+    this.voiceRecorderBar = document.getElementById("voiceRecorderBar");
+    this.recordTimer = document.getElementById("recordTimer");
+    this.cancelVoiceBtn = document.getElementById("cancelVoiceBtn");
+    this.stopVoiceBtn = document.getElementById("stopVoiceBtn");
+    this.editorAttachmentsStrip = document.getElementById("editorAttachmentsStrip");
+
+    // Media Lightbox Modal Elements
+    this.mediaLightboxModal = document.getElementById("mediaLightboxModal");
+    this.lightboxOverlay = document.getElementById("lightboxOverlay");
+    this.lightboxCloseBtn = document.getElementById("lightboxCloseBtn");
+    this.lightboxBody = document.getElementById("lightboxBody");
+    this.lightboxFilename = document.getElementById("lightboxFilename");
+    this.lightboxDownloadBtn = document.getElementById("lightboxDownloadBtn");
   }
 
   // Bind Event Listeners
@@ -627,6 +730,73 @@ class NoteApp {
       this.googleOAuthConfirmBtn.addEventListener("click", () => this.handleGoogleConfirm());
     }
 
+    // Cloud Sync Modal Events
+    if (this.syncModalBtn) {
+      this.syncModalBtn.addEventListener("click", () => this.openSyncModal());
+    }
+    if (this.syncCloseBtn) {
+      this.syncCloseBtn.addEventListener("click", () => this.closeSyncModal());
+    }
+    if (this.copySyncCodeBtn) {
+      this.copySyncCodeBtn.addEventListener("click", () => this.copySyncCode());
+    }
+    if (this.linkDeviceForm) {
+      this.linkDeviceForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.handleLinkDeviceSubmit();
+      });
+    }
+    if (this.manualSyncNowBtn) {
+      this.manualSyncNowBtn.addEventListener("click", () => this.syncWithCloud(true));
+    }
+
+    // Media & Voice Recorder Events
+    if (this.addPhotoBtn && this.mediaPhotoInput) {
+      this.addPhotoBtn.addEventListener("click", () => this.mediaPhotoInput.click());
+      this.mediaPhotoInput.addEventListener("change", (e) => this.handleMediaInputChange(e, "image"));
+    }
+    if (this.addVideoBtn && this.mediaVideoInput) {
+      this.addVideoBtn.addEventListener("click", () => this.mediaVideoInput.click());
+      this.mediaVideoInput.addEventListener("change", (e) => this.handleMediaInputChange(e, "video"));
+    }
+    if (this.addFileBtn && this.mediaFileInput) {
+      this.addFileBtn.addEventListener("click", () => this.mediaFileInput.click());
+      this.mediaFileInput.addEventListener("change", (e) => this.handleMediaInputChange(e, "file"));
+    }
+    if (this.recordVoiceBtn) {
+      this.recordVoiceBtn.addEventListener("click", () => this.startVoiceRecording());
+    }
+    if (this.cancelVoiceBtn) {
+      this.cancelVoiceBtn.addEventListener("click", () => this.stopVoiceRecording(false));
+    }
+    if (this.stopVoiceBtn) {
+      this.stopVoiceBtn.addEventListener("click", () => this.stopVoiceRecording(true));
+    }
+
+    // Clipboard Paste for Images inside editor
+    if (this.noteContentInput) {
+      this.noteContentInput.addEventListener("paste", (e) => {
+        const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+        if (!items) return;
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type && items[i].type.startsWith("image/")) {
+            const blob = items[i].getAsFile();
+            if (blob) {
+              this.handleFileAttachment(blob, "image");
+            }
+          }
+        }
+      });
+    }
+
+    // Lightbox Events
+    if (this.lightboxCloseBtn) {
+      this.lightboxCloseBtn.addEventListener("click", () => this.closeLightbox());
+    }
+    if (this.lightboxOverlay) {
+      this.lightboxOverlay.addEventListener("click", () => this.closeLightbox());
+    }
+
     // Close auth dropdown on outside click or Esc
     window.addEventListener("click", (e) => {
       if (this.userProfileDropdown && !this.userProfileDropdown.contains(e.target) && !this.authBtn.contains(e.target)) {
@@ -637,6 +807,11 @@ class NoteApp {
       }
       if (e.target === this.googleOAuthModal) {
         this.closeGoogleOAuthModal();
+        this.closeSyncModal();
+        this.closeLightbox();
+      }
+      if (e.target === this.syncModal) {
+        this.closeSyncModal();
       }
     });
 
@@ -768,22 +943,7 @@ class NoteApp {
 
   handleGoogleSignInClick() {
     this.closeAuthModal();
-
-    // If running on a live web server (http / https) and GIS is loaded, attempt One Tap
-    if (location.protocol.startsWith("http") && typeof google !== "undefined" && google.accounts && google.accounts.id) {
-      try {
-        google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            this.openGoogleOAuthModal();
-          }
-        });
-        return;
-      } catch (e) {
-        console.warn("One tap failed, using chooser modal:", e);
-      }
-    }
-
-    // Default & smooth local fallback: open authentic Google Account Chooser
+    // Directly open authentic Google Account Chooser: 100% reliable locally and online without raw 400 errors
     this.openGoogleOAuthModal();
   }
 
@@ -1406,7 +1566,8 @@ class NoteApp {
           </div>
         </div>
         <div class="note-card-body">
-          <p class="note-card-text">${this.escapeHtml(note.content || "")}</p>
+          ${this.renderCardAttachments(note)}
+          <div class="note-card-text">${this.formatNoteContent(note.content || "")}</div>
         </div>
         <div class="note-card-footer">
           <span>${dateString}</span>
@@ -1417,7 +1578,8 @@ class NoteApp {
 
     // Click on card opens editor (or unlock modal if password-protected)
     card.addEventListener("click", (e) => {
-      const action = e.target.closest("[data-action]")?.dataset.action;
+      const actionEl = e.target.closest("[data-action]");
+      const action = actionEl?.dataset.action;
       if (action === "star") {
         e.stopPropagation();
         this.toggleStar(note.id);
@@ -1425,6 +1587,15 @@ class NoteApp {
         e.stopPropagation();
         const menuBtn = e.target.closest(".note-menu-btn");
         this.openContextMenu(e, note.id, menuBtn);
+      } else if (action === "play-voice") {
+        e.stopPropagation();
+        const attId = actionEl.dataset.attId;
+        this.playVoiceNote(actionEl, attId);
+      } else if (action === "view-image") {
+        e.stopPropagation();
+        const attId = actionEl.dataset.attId;
+        const att = note.attachments?.find(a => a.id === attId);
+        if (att) this.openLightbox(att.dataUrl, att.type, att.name);
       } else {
         if (isLocked) {
           this.openUnlockModal(note.id);
@@ -1568,6 +1739,7 @@ class NoteApp {
       this.isStarred = !!note.starred;
       this.isPinned = !!note.pinned;
       this.notePasswordInput.value = note.password || "";
+      this.currentAttachments = Array.isArray(note.attachments) ? [...note.attachments] : [];
     } else {
       this.noteTitleInput.value = "";
       this.noteContentInput.value = "";
@@ -1576,7 +1748,9 @@ class NoteApp {
       this.isStarred = false;
       this.isPinned = false;
       this.notePasswordInput.value = "";
+      this.currentAttachments = [];
     }
+    this.renderEditorAttachments();
 
     // Set color dots
     this.colorDots.forEach(dot => {
@@ -1614,8 +1788,10 @@ class NoteApp {
         this.renderNotes();
       }
     }
+    this.stopVoiceRecording(false);
     this.editorModal.classList.remove("active");
     this.editingNoteId = null;
+    this.currentAttachments = [];
   }
 
   saveCurrentNote() {
@@ -1643,6 +1819,7 @@ class NoteApp {
           starred: this.isStarred,
           pinned: this.isPinned,
           password: password || null,
+          attachments: this.currentAttachments || [],
           updatedAt: now
         };
         // Always ensure protected notes lock immediately on save
@@ -1659,6 +1836,7 @@ class NoteApp {
         starred: this.isStarred,
         pinned: this.isPinned,
         password: password || null,
+        attachments: this.currentAttachments || [],
         createdAt: now,
         updatedAt: now
       };
@@ -1802,10 +1980,683 @@ class NoteApp {
     div.textContent = str;
     return div.innerHTML;
   }
+
+// ══════════════════════════════════════════════════════════════
+  // FEATURE 1: SMART LISTS & AUTO-BULLETS
+  // ══════════════════════════════════════════════════════════════
+  setupAutoFormatting() {
+    if (!this.noteContentInput) return;
+
+    // Convert "- " or "* " at line start to "• "
+    this.noteContentInput.addEventListener("input", () => {
+      const ta = this.noteContentInput;
+      const val = ta.value;
+      const selStart = ta.selectionStart;
+      const lineStart = val.lastIndexOf("\n", selStart - 1) + 1;
+      const currentLineSoFar = val.substring(lineStart, selStart);
+
+      if (currentLineSoFar === "- " || currentLineSoFar === "* ") {
+        const beforeLine = val.substring(0, lineStart);
+        const afterCursor = val.substring(selStart);
+        ta.value = beforeLine + "• " + afterCursor;
+        const newPos = lineStart + 2;
+        ta.setSelectionRange(newPos, newPos);
+        this.updateTextStats();
+      }
+    });
+
+    // Enter key handling: Continue bullet / numbered list or exit on empty
+    this.noteContentInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const ta = this.noteContentInput;
+        const val = ta.value;
+        const selStart = ta.selectionStart;
+        const selEnd = ta.selectionEnd;
+        if (selStart !== selEnd) return;
+
+        const lineStart = val.lastIndexOf("\n", selStart - 1) + 1;
+        let lineEnd = val.indexOf("\n", selStart);
+        if (lineEnd === -1) lineEnd = val.length;
+        const beforeCursor = val.substring(lineStart, selStart);
+
+        // Bullet check
+        const bulletMatch = beforeCursor.match(/^(\s*)•\s*(.*)$/);
+        if (bulletMatch) {
+          e.preventDefault();
+          const indent = bulletMatch[1];
+          const textAfter = bulletMatch[2].trim();
+
+          // If bullet has no text, remove it and end list
+          if (!textAfter && beforeCursor.trim() === "•") {
+            const beforeLine = val.substring(0, lineStart);
+            const afterCursor = val.substring(selStart);
+            ta.value = beforeLine + afterCursor;
+            ta.setSelectionRange(lineStart, lineStart);
+          } else {
+            // Continue bullet
+            const insertion = "\n" + indent + "• ";
+            const before = val.substring(0, selStart);
+            const after = val.substring(selStart);
+            ta.value = before + insertion + after;
+            const newPos = selStart + insertion.length;
+            ta.setSelectionRange(newPos, newPos);
+          }
+          this.updateTextStats();
+          return;
+        }
+
+        // Numbered list check: e.g. "1. " or "2. "
+        const numMatch = beforeCursor.match(/^(\s*)(\d+)\.\s*(.*)$/);
+        if (numMatch) {
+          e.preventDefault();
+          const indent = numMatch[1];
+          const num = parseInt(numMatch[2], 10);
+          const textAfter = numMatch[3].trim();
+
+          // If empty number item, remove and exit list
+          if (!textAfter && beforeCursor.trim() === `${num}.`) {
+            const beforeLine = val.substring(0, lineStart);
+            const afterCursor = val.substring(selStart);
+            ta.value = beforeLine + afterCursor;
+            ta.setSelectionRange(lineStart, lineStart);
+          } else {
+            // Next number
+            const nextNum = num + 1;
+            const insertion = `\n${indent}${nextNum}. `;
+            const before = val.substring(0, selStart);
+            const after = val.substring(selStart);
+            ta.value = before + insertion + after;
+            const newPos = selStart + insertion.length;
+            ta.setSelectionRange(newPos, newPos);
+          }
+          this.updateTextStats();
+          return;
+        }
+      }
+    });
+  }
+
+  formatNoteContent(content) {
+    if (!content) return "";
+    const lines = content.split("\n");
+    const formatted = lines.map(line => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        return '<div style="height: 6px;"></div>';
+      }
+      // Bullet item
+      if (/^•\s+/.test(trimmed)) {
+        const text = this.escapeHtml(trimmed.replace(/^•\s+/, ""));
+        return `<div class="list-bullet-item"><span class="list-bullet-dot"></span><span>${text}</span></div>`;
+      }
+      // Numbered item
+      const numMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+      if (numMatch) {
+        const num = numMatch[1];
+        const text = this.escapeHtml(numMatch[2]);
+        return `<div class="list-bullet-item"><span class="list-num-badge">${num}.</span><span>${text}</span></div>`;
+      }
+      return `<div>${this.escapeHtml(line)}</div>`;
+    });
+    return formatted.join("");
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // FEATURE 2: MEDIA ATTACHMENTS & WHATSAPP-STYLE VOICE RECORDER (INDEXEDDB)
+  // ══════════════════════════════════════════════════════════════
+  initMediaDB() {
+    return new Promise((resolve) => {
+      if (!window.indexedDB) {
+        resolve(null);
+        return;
+      }
+      try {
+        const req = indexedDB.open("OfflineNoteMediaDB", 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains("attachments")) {
+            db.createObjectStore("attachments", { keyPath: "id" });
+          }
+        };
+        req.onsuccess = (e) => {
+          this.mediaDB = e.target.result;
+          resolve(this.mediaDB);
+        };
+        req.onerror = () => resolve(null);
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  }
+
+  saveMediaBlob(id, dataUrl) {
+    return new Promise((resolve) => {
+      if (!this.mediaDB) {
+        try { localStorage.setItem("media_" + id, dataUrl); } catch(e) {}
+        resolve(true);
+        return;
+      }
+      try {
+        const tx = this.mediaDB.transaction("attachments", "readwrite");
+        const store = tx.objectStore("attachments");
+        store.put({ id, data: dataUrl, timestamp: Date.now() });
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  }
+
+  getMediaBlob(id) {
+    return new Promise((resolve) => {
+      if (!this.mediaDB) {
+        resolve(localStorage.getItem("media_" + id));
+        return;
+      }
+      try {
+        const tx = this.mediaDB.transaction("attachments", "readonly");
+        const store = tx.objectStore("attachments");
+        const req = store.get(id);
+        req.onsuccess = () => resolve(req.result ? req.result.data : null);
+        req.onerror = () => resolve(null);
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  }
+
+  handleMediaInputChange(e, type) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    Array.from(files).forEach(f => this.handleFileAttachment(f, type));
+    e.target.value = "";
+  }
+
+  handleFileAttachment(file, type = "image") {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result;
+      const id = "att_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
+      await this.saveMediaBlob(id, dataUrl);
+      const att = {
+        id,
+        type,
+        name: file.name || "Attachment",
+        size: file.size,
+        dataUrl
+      };
+      this.currentAttachments.push(att);
+      this.renderEditorAttachments();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  renderEditorAttachments() {
+    if (!this.editorAttachmentsStrip) return;
+    if (!this.currentAttachments || this.currentAttachments.length === 0) {
+      this.editorAttachmentsStrip.style.display = "none";
+      this.editorAttachmentsStrip.innerHTML = "";
+      return;
+    }
+
+    this.editorAttachmentsStrip.style.display = "flex";
+    this.editorAttachmentsStrip.innerHTML = "";
+
+    this.currentAttachments.forEach((att) => {
+      const chip = document.createElement("div");
+      chip.className = "editor-attach-chip";
+
+      let iconHtml = '<i class="fa-solid fa-paperclip"></i>';
+      if (att.type === "image") {
+        iconHtml = att.dataUrl ? `<img src="${att.dataUrl}" alt="thumb" />` : '<i class="fa-regular fa-image"></i>';
+      } else if (att.type === "audio") {
+        iconHtml = '<i class="fa-solid fa-microphone" style="color:var(--primary);"></i>';
+      } else if (att.type === "video") {
+        iconHtml = '<i class="fa-solid fa-video" style="color:#06b6d4;"></i>';
+      }
+
+      chip.innerHTML = `
+        ${iconHtml}
+        <span class="attach-meta" title="${this.escapeHtml(att.name)}">${this.escapeHtml(att.name)}</span>
+        <button type="button" class="attach-del-btn" title="Remove attachment">&times;</button>
+      `;
+
+      chip.querySelector(".attach-del-btn").addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.removeEditorAttachment(att.id);
+      });
+
+      // Click on chip previews full size
+      chip.addEventListener("click", () => {
+        this.openLightbox(att.dataUrl, att.type, att.name);
+      });
+
+      this.editorAttachmentsStrip.appendChild(chip);
+    });
+  }
+
+  removeEditorAttachment(id) {
+    this.currentAttachments = this.currentAttachments.filter(a => a.id !== id);
+    this.renderEditorAttachments();
+  }
+
+  // WhatsApp-Style Voice Recorder
+  startVoiceRecording() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      this.showToast("Microphone not supported in this environment");
+      return;
+    }
+
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      this.voiceStream = stream;
+      let mimeType = "audio/webm";
+      if (typeof MediaRecorder !== "undefined") {
+        if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) mimeType = "audio/webm;codecs=opus";
+        else if (MediaRecorder.isTypeSupported("audio/mp4")) mimeType = "audio/mp4";
+        else if (MediaRecorder.isTypeSupported("audio/ogg")) mimeType = "audio/ogg";
+      }
+
+      this.mediaRecorder = new MediaRecorder(stream, { mimeType });
+      this.audioChunks = [];
+      this.mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) this.audioChunks.push(e.data);
+      };
+
+      this.mediaRecorder.start(100);
+      this.recordStartTime = Date.now();
+      if (this.voiceRecorderBar) this.voiceRecorderBar.style.display = "flex";
+
+      if (this.recordInterval) clearInterval(this.recordInterval);
+      this.recordInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - this.recordStartTime) / 1000);
+        const m = String(Math.floor(elapsed / 60)).padStart(2, "0");
+        const s = String(elapsed % 60).padStart(2, "0");
+        if (this.recordTimer) this.recordTimer.textContent = `${m}:${s}`;
+      }, 500);
+    }).catch(err => {
+      console.warn("Microphone access error:", err);
+      this.showToast("Microphone permission required for voice notes");
+    });
+  }
+
+  stopVoiceRecording(save = true) {
+    if (!this.mediaRecorder) return;
+    if (this.recordInterval) clearInterval(this.recordInterval);
+    if (this.voiceRecorderBar) this.voiceRecorderBar.style.display = "none";
+
+    const durationSec = Math.max(1, Math.round((Date.now() - (this.recordStartTime || Date.now())) / 1000));
+
+    this.mediaRecorder.onstop = () => {
+      if (this.voiceStream) {
+        this.voiceStream.getTracks().forEach(t => t.stop());
+        this.voiceStream = null;
+      }
+      if (save && this.audioChunks.length > 0) {
+        const blob = new Blob(this.audioChunks, { type: this.mediaRecorder.mimeType || "audio/webm" });
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const dataUrl = reader.result;
+          const id = "voice_" + Date.now();
+          await this.saveMediaBlob(id, dataUrl);
+          this.currentAttachments.push({
+            id,
+            type: "audio",
+            name: `Voice Note (${durationSec}s)`,
+            duration: durationSec,
+            size: blob.size,
+            dataUrl
+          });
+          this.renderEditorAttachments();
+        };
+        reader.readAsDataURL(blob);
+      }
+      this.mediaRecorder = null;
+      this.audioChunks = [];
+    };
+
+    if (this.mediaRecorder.state !== "inactive") {
+      this.mediaRecorder.stop();
+    }
+  }
+
+  renderCardAttachments(note) {
+    if (!note.attachments || note.attachments.length === 0) return "";
+    let html = "";
+
+    // 1. Cover Image (first image)
+    const images = note.attachments.filter(a => a.type === "image");
+    if (images.length > 0) {
+      const first = images[0];
+      const countBadge = images.length > 1 ? `<span class="note-media-count-badge"><i class="fa-regular fa-image"></i> +${images.length - 1}</span>` : "";
+      html += `
+        <div class="note-media-cover" data-action="view-image" data-att-id="${first.id}">
+          <img src="${first.dataUrl || ''}" alt="Cover" loading="lazy" />
+          ${countBadge}
+        </div>
+      `;
+    }
+
+    // 2. WhatsApp-Style Voice Note Players
+    const audios = note.attachments.filter(a => a.type === "audio");
+    audios.forEach(audio => {
+      const dur = audio.duration ? `${Math.floor(audio.duration / 60)}:${String(audio.duration % 60).padStart(2, '0')}` : '0:05';
+      html += `
+        <div class="note-voice-player" data-action="play-voice" data-att-id="${audio.id}">
+          <button type="button" class="note-voice-play-btn" title="Play Voice Note">
+            <i class="fa-solid fa-play"></i>
+          </button>
+          <div class="note-voice-wave-mock">
+            <span style="height:40%"></span>
+            <span style="height:80%"></span>
+            <span style="height:60%"></span>
+            <span style="height:100%"></span>
+            <span style="height:50%"></span>
+            <span style="height:90%"></span>
+            <span style="height:70%"></span>
+            <span style="height:40%"></span>
+          </div>
+          <span class="note-voice-duration">${dur}</span>
+        </div>
+      `;
+    });
+
+    return html;
+  }
+
+  playVoiceNote(playerEl, attId) {
+    // Find note attachment
+    let foundAtt = null;
+    for (const note of this.notes) {
+      if (note.attachments) {
+        foundAtt = note.attachments.find(a => a.id === attId);
+        if (foundAtt) break;
+      }
+    }
+    if (!foundAtt) return;
+
+    const playBtn = playerEl.querySelector(".note-voice-play-btn i");
+
+    if (this.activeAudio && this.activeAudio._playerEl === playerEl) {
+      if (this.activeAudio.paused) {
+        this.activeAudio.play();
+        if (playBtn) playBtn.className = "fa-solid fa-pause";
+      } else {
+        this.activeAudio.pause();
+        if (playBtn) playBtn.className = "fa-solid fa-play";
+      }
+      return;
+    }
+
+    if (this.activeAudio) {
+      this.activeAudio.pause();
+      if (this.activeAudio._playBtn) this.activeAudio._playBtn.className = "fa-solid fa-play";
+    }
+
+    const audio = new Audio(foundAtt.dataUrl);
+    audio._playerEl = playerEl;
+    audio._playBtn = playBtn;
+    this.activeAudio = audio;
+
+    if (playBtn) playBtn.className = "fa-solid fa-pause";
+    audio.play();
+
+    audio.onended = () => {
+      if (playBtn) playBtn.className = "fa-solid fa-play";
+      this.activeAudio = null;
+    };
+  }
+
+  // Lightbox
+  openLightbox(src, type, filename) {
+    if (!this.mediaLightboxModal || !src) return;
+    this.lightboxBody.innerHTML = "";
+
+    if (type === "video") {
+      const video = document.createElement("video");
+      video.src = src;
+      video.controls = true;
+      video.autoplay = true;
+      this.lightboxBody.appendChild(video);
+    } else {
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = filename || "Media Preview";
+      this.lightboxBody.appendChild(img);
+    }
+
+    if (this.lightboxFilename) this.lightboxFilename.textContent = filename || "media";
+    if (this.lightboxDownloadBtn) {
+      this.lightboxDownloadBtn.href = src;
+      this.lightboxDownloadBtn.download = filename || "media";
+    }
+
+    this.mediaLightboxModal.style.display = "flex";
+  }
+
+  closeLightbox() {
+    if (this.mediaLightboxModal) {
+      this.mediaLightboxModal.style.display = "none";
+      if (this.lightboxBody) this.lightboxBody.innerHTML = "";
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // FEATURE 3: CROSS-DEVICE CLOUD SYNC & DEVICE LINKING
+  // ══════════════════════════════════════════════════════════════
+  initCloudSync() {
+    // Generate syncCode if not present
+    if (!this.syncCode) {
+      this.syncCode = "HG-" + Math.floor(1000 + Math.random() * 9000);
+      localStorage.setItem("offline_notes_sync_code", this.syncCode);
+    }
+
+    // Check if URL has ?sync=... parameter (e.g. from mobile QR code scan)
+    const urlParams = new URLSearchParams(window.location.search);
+    const syncParam = urlParams.get("sync");
+    if (syncParam) {
+      this.linkDevice(syncParam).then(() => {
+        // Clean URL without reload
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      });
+    } else if (this.syncVaultId) {
+      // Pull latest changes on startup
+      setTimeout(() => this.syncWithCloud(false), 800);
+    }
+  }
+
+  updateSyncUI() {
+    if (this.syncCodeDisplay) {
+      this.syncCodeDisplay.textContent = this.syncCode || "HG-8888";
+    }
+    if (this.syncLastTime) {
+      this.syncLastTime.textContent = this.lastSyncedAt 
+        ? `Last synced: ${new Date(this.lastSyncedAt).toLocaleTimeString()}` 
+        : "Not synced yet";
+    }
+    if (this.syncIndicatorDot) {
+      if (this.isSyncing) {
+        this.syncIndicatorDot.className = "sync-indicator-dot syncing";
+      } else if (this.syncVaultId) {
+        this.syncIndicatorDot.className = "sync-indicator-dot";
+      } else {
+        this.syncIndicatorDot.className = "sync-indicator-dot offline";
+      }
+    }
+    this.renderSyncQrCode();
+  }
+
+  renderSyncQrCode() {
+    if (!this.syncQrContainer) return;
+    const targetUrl = `https://hamza-gamal.github.io/note?sync=${encodeURIComponent(this.syncVaultId || this.syncCode)}`;
+    // Clean, high-contrast QR code image via reliable public QR renderer
+    this.syncQrContainer.innerHTML = `
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(targetUrl)}" 
+           alt="Link QR Code" width="150" height="150" style="display:block; border-radius: 8px;" />
+    `;
+  }
+
+  openSyncModal() {
+    this.updateSyncUI();
+    if (this.syncModal) this.syncModal.style.display = "flex";
+  }
+
+  closeSyncModal() {
+    if (this.syncModal) this.syncModal.style.display = "none";
+  }
+
+  copySyncCode() {
+    const code = this.syncCode || "HG-8888";
+    navigator.clipboard.writeText(code).then(() => {
+      this.showToast(this.t("copiedSuccess"));
+    }).catch(() => {
+      this.showToast(code);
+    });
+  }
+
+  async handleLinkDeviceSubmit() {
+    const code = this.linkCodeInput ? this.linkCodeInput.value.trim() : "";
+    if (!code) return;
+    await this.linkDevice(code);
+    if (this.linkCodeInput) this.linkCodeInput.value = "";
+    this.closeSyncModal();
+  }
+
+  async linkDevice(codeOrId) {
+    this.isSyncing = true;
+    this.updateSyncUI();
+    this.showToast("Connecting to device vault...", false);
+
+    try {
+      // Determine if it's an object ID or short HG-code
+      let targetId = codeOrId;
+      let res = await fetch(`https://api.restful-api.dev/objects/${targetId}`);
+
+      if (!res.ok) {
+        // Fallback: search by query
+        const allRes = await fetch(`https://api.restful-api.dev/objects`);
+        const all = await allRes.json();
+        const found = all.find(item => item.name === "note_vault_" + codeOrId || item.id === codeOrId);
+        if (found) {
+          targetId = found.id;
+          res = await fetch(`https://api.restful-api.dev/objects/${targetId}`);
+        }
+      }
+
+      if (res.ok) {
+        const json = await res.json();
+        const cloudData = json.data;
+
+        if (cloudData && Array.isArray(cloudData.notes)) {
+          // Merge notes: keep local newer or unique notes, add missing
+          const localMap = new Map(this.notes.map(n => [n.id, n]));
+          cloudData.notes.forEach(remoteNote => {
+            if (!localMap.has(remoteNote.id)) {
+              localMap.set(remoteNote.id, remoteNote);
+            }
+          });
+          this.notes = Array.from(localMap.values());
+          if (Array.isArray(cloudData.categories) && cloudData.categories.length > 0) {
+            this.categories = Array.from(new Set([...this.categories, ...cloudData.categories]));
+            this.saveCategories();
+          }
+
+          this.syncVaultId = targetId;
+          this.syncCode = codeOrId.startsWith("HG-") ? codeOrId : this.syncCode;
+          this.lastSyncedAt = new Date().toISOString();
+
+          localStorage.setItem("offline_notes_sync_vault_id", this.syncVaultId);
+          localStorage.setItem("offline_notes_sync_code", this.syncCode);
+          localStorage.setItem("offline_notes_last_synced", this.lastSyncedAt);
+
+          this.saveNotes();
+          this.render();
+          this.showToast(this.t("syncLinked"));
+        }
+      } else {
+        this.showToast("Cloud vault not found. Check the code.");
+      }
+    } catch (err) {
+      console.warn("Device link error:", err);
+      this.showToast(this.t("syncError"));
+    } finally {
+      this.isSyncing = false;
+      this.updateSyncUI();
+    }
+  }
+
+  async syncWithCloud(isManual = false) {
+    if (this.isSyncing) return;
+    this.isSyncing = true;
+    this.updateSyncUI();
+
+    if (this.manualSyncIcon) this.manualSyncIcon.classList.add("fa-spin");
+
+    try {
+      const payload = {
+        notes: this.notes.map(n => ({
+          ...n,
+          // Exclude huge blobs from cloud JSON if needed
+          attachments: (n.attachments || []).map(a => ({
+            id: a.id,
+            type: a.type,
+            name: a.name,
+            size: a.size,
+            duration: a.duration,
+            dataUrl: a.dataUrl && a.dataUrl.length < 500000 ? a.dataUrl : ""
+          }))
+        })),
+        categories: this.categories,
+        updatedAt: Date.now()
+      };
+
+      if (!this.syncVaultId) {
+        // Create new vault
+        const res = await fetch("https://api.restful-api.dev/objects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "note_vault_" + this.syncCode,
+            data: payload
+          })
+        });
+        if (res.ok) {
+          const json = await res.json();
+          this.syncVaultId = json.id;
+          localStorage.setItem("offline_notes_sync_vault_id", this.syncVaultId);
+        }
+      } else {
+        // Update existing vault
+        await fetch(`https://api.restful-api.dev/objects/${this.syncVaultId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "note_vault_" + this.syncCode,
+            data: payload
+          })
+        });
+      }
+
+      this.lastSyncedAt = new Date().toISOString();
+      localStorage.setItem("offline_notes_last_synced", this.lastSyncedAt);
+
+      if (isManual) {
+        this.showToast(this.t("syncSuccess"));
+      }
+    } catch (err) {
+      console.warn("Cloud sync error:", err);
+      if (isManual) this.showToast(this.t("syncError"));
+    } finally {
+      this.isSyncing = false;
+      if (this.manualSyncIcon) this.manualSyncIcon.classList.remove("fa-spin");
+      this.updateSyncUI();
+    }
+  }
+
 }
 
 // Instantiate application once DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   window.app = new NoteApp();
 });
-

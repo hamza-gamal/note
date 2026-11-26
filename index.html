@@ -139,6 +139,13 @@
             <i class="fa-solid fa-house"></i>
           </a>
 
+          <!-- Cloud Sync & Link Devices Pill -->
+          <button id="syncModalBtn" class="topbar-btn sync-btn" title="Cloud Sync & Link Devices / مزامنة السحابة وربط الأجهزة">
+            <i class="fa-solid fa-cloud" id="syncStatusIcon"></i>
+            <span id="syncStatusText" data-i18n="cloudSync">Cloud Sync</span>
+            <span class="sync-indicator-dot" id="syncIndicatorDot"></span>
+          </button>
+
           <!-- Sign In / User Profile Pill -->
           <div class="user-auth-wrap">
             <button id="authBtn" class="topbar-btn auth-btn" title="Sign In / تسجيل الدخول">
@@ -258,6 +265,64 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Media Toolbar (Photos, Voice Notes, Video, Files) -->
+      <div class="editor-media-toolbar">
+        <div class="media-btn-group">
+          <button type="button" class="media-tool-btn" id="addPhotoBtn" title="Add Photo / صورة">
+            <i class="fa-regular fa-image"></i>
+            <span data-i18n="addPhoto">Photo</span>
+          </button>
+          <input type="file" id="mediaPhotoInput" accept="image/*" multiple style="display:none;" />
+
+          <button type="button" class="media-tool-btn" id="recordVoiceBtn" title="Record Voice Note / تسجيل صوتي">
+            <i class="fa-solid fa-microphone"></i>
+            <span data-i18n="recordVoice">Voice</span>
+          </button>
+
+          <button type="button" class="media-tool-btn" id="addVideoBtn" title="Add Video / فيديو">
+            <i class="fa-solid fa-video"></i>
+            <span data-i18n="addVideo">Video</span>
+          </button>
+          <input type="file" id="mediaVideoInput" accept="video/*" style="display:none;" />
+
+          <button type="button" class="media-tool-btn" id="addFileBtn" title="Attach File / إرفاق ملف">
+            <i class="fa-solid fa-paperclip"></i>
+            <span data-i18n="attachFile">File</span>
+          </button>
+          <input type="file" id="mediaFileInput" style="display:none;" />
+        </div>
+
+        <div class="editor-format-hints">
+          <span class="format-hint-pill" title="Type - or * then space to make a bullet"><kbd>-</kbd> bullet</span>
+          <span class="format-hint-pill" title="Type 1. then space to make a numbered list"><kbd>1.</kbd> list</span>
+        </div>
+      </div>
+
+      <!-- WhatsApp-Style Live Audio Recorder Bar -->
+      <div class="voice-recorder-bar" id="voiceRecorderBar" style="display:none;">
+        <div class="voice-recorder-live">
+          <span class="record-pulse-dot"></span>
+          <span class="record-timer" id="recordTimer">00:00</span>
+          <div class="record-wave-bars">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="voice-recorder-actions">
+          <button type="button" class="voice-btn cancel" id="cancelVoiceBtn" title="Cancel Recording">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+          <button type="button" class="voice-btn stop" id="stopVoiceBtn" title="Done & Add to Note">
+            <i class="fa-solid fa-check"></i>
+            <span data-i18n="done">Done</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Attached Media Strip in Editor -->
+      <div class="editor-attachments-strip" id="editorAttachmentsStrip" style="display:none;">
+        <!-- Dynamically rendered attachment pills/thumbnails -->
       </div>
 
       <!-- Editor Textarea -->
@@ -479,6 +544,93 @@
       <div class="google-oauth-actions">
         <button type="button" id="googleOAuthCancelBtn" class="google-oauth-btn-cancel" data-i18n="cancelBtn">Cancel</button>
         <button type="button" id="googleOAuthConfirmBtn" class="google-oauth-btn-confirm" data-i18n="googleContinueBtn">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Cloud Sync & Link Devices Modal (Cross-device phone & laptop sync) ── -->
+  <div id="syncModal" class="custom-modal-backdrop" style="display: none;">
+    <div class="sync-modal-card">
+      <button id="syncCloseBtn" class="auth-close-x" title="Close">&times;</button>
+      
+      <div class="sync-header">
+        <div class="sync-brand-icon">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+        </div>
+        <h2 class="sync-title" data-i18n="syncModalTitle">Cloud Sync & Link Devices</h2>
+        <p class="sync-subtitle" data-i18n="syncModalSubtitle">Keep your notes seamlessly synced across mobile, laptop, and all your devices.</p>
+      </div>
+
+      <!-- Sync Status Pill -->
+      <div class="sync-status-badge" id="syncStatusBadge">
+        <span class="status-indicator"></span>
+        <span id="syncStatusBadgeText">Auto-sync active</span>
+      </div>
+
+      <!-- Device Pairing Code Box -->
+      <div class="sync-code-box">
+        <div class="sync-code-label" data-i18n="yourSyncCode">Your Device Link Code:</div>
+        <div class="sync-code-row">
+          <div class="sync-code-display" id="syncCodeDisplay">------</div>
+          <button type="button" class="sync-action-btn" id="copySyncCodeBtn" title="Copy code">
+            <i class="fa-regular fa-copy"></i>
+            <span data-i18n="copy">Copy</span>
+          </button>
+        </div>
+        <p class="sync-hint" data-i18n="syncCodeHint">Enter this code on your phone or other device to link them instantly.</p>
+      </div>
+
+      <!-- QR Code for Instant Mobile Link -->
+      <div class="sync-qr-section">
+        <div class="sync-qr-container" id="syncQrContainer">
+          <!-- Live QR code will be generated here -->
+        </div>
+        <p class="sync-qr-note" data-i18n="syncQrHint">Scan with your phone camera to open and sync all your notes on mobile instantly!</p>
+      </div>
+
+      <div class="auth-divider">
+        <span data-i18n="orLinkOther">or link with another device</span>
+      </div>
+
+      <!-- Enter Code from Another Device -->
+      <form id="linkDeviceForm" class="link-device-form" onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label" data-i18n="enterCodeFromOther">Enter Sync Code from your other device:</label>
+          <div class="link-input-group">
+            <input type="text" id="linkCodeInput" class="form-input sync-input" placeholder="e.g. HG-8924 or Cloud Vault ID" autocomplete="off" />
+            <button type="submit" id="linkDeviceSubmitBtn" class="btn btn-primary">
+              <i class="fa-solid fa-link"></i>
+              <span data-i18n="linkBtn">Link</span>
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Sync Controls & Last Synced Timestamp -->
+      <div class="sync-footer-actions">
+        <button type="button" id="manualSyncNowBtn" class="btn btn-secondary btn-block">
+          <i class="fa-solid fa-arrows-rotate" id="manualSyncIcon"></i>
+          <span data-i18n="syncNow">Sync Now</span>
+        </button>
+        <div class="sync-last-time" id="syncLastTime">Last synced: Just now</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Media Lightbox Modal (Zoomed image & video preview) ── -->
+  <div id="mediaLightboxModal" class="media-lightbox-modal" style="display: none;">
+    <div class="lightbox-overlay" id="lightboxOverlay"></div>
+    <div class="lightbox-content-box">
+      <button class="lightbox-close-btn" id="lightboxCloseBtn" title="Close">&times;</button>
+      <div class="lightbox-body" id="lightboxBody">
+        <!-- Rendered image or video -->
+      </div>
+      <div class="lightbox-footer">
+        <span class="lightbox-filename" id="lightboxFilename">media.jpg</span>
+        <a href="#" class="lightbox-download-btn" id="lightboxDownloadBtn" download title="Download file">
+          <i class="fa-solid fa-download"></i>
+          <span data-i18n="download">Download</span>
+        </a>
       </div>
     </div>
   </div>
