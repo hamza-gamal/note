@@ -2753,3 +2753,147 @@ body[data-theme="light"] .google-oauth-btn-confirm:hover {
 .lightbox-download-btn:hover {
   opacity: 0.9;
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   USER PROFILE PHOTO & AVATAR STYLES
+   ══════════════════════════════════════════════════════════════ */
+.user-avatar-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary);
+  flex-shrink: 0;
+  display: block;
+}
+.user-dropdown-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--primary);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.user-dropdown-avatar img,
+.dropdown-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GOOGLE KEEP-STYLE NOTE BACKGROUND THEMES
+   ══════════════════════════════════════════════════════════════ */
+.bg-meta-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bg-palette {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.bg-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-color);
+  background: var(--card-bg);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+.bg-dot:hover {
+  transform: scale(1.15);
+  border-color: var(--primary);
+}
+.bg-dot.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.4);
+  transform: scale(1.1);
+}
+.bg-custom-btn {
+  background: rgba(244, 63, 94, 0.1);
+  color: var(--primary);
+  font-size: 0.75rem;
+}
+
+/* Note Card Themed Backgrounds (Google Keep style) */
+.note-card[data-bg="groceries"] {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 150, 105, 0.04)), 
+              url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' opacity='0.15' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='1.5'%3E%3Cpath d='M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0'/%3E%3C/svg%3E") bottom right no-repeat,
+              var(--card-bg) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+.note-card[data-bg="food"] {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(217, 119, 6, 0.04)),
+              url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' opacity='0.15' viewBox='0 0 24 24' fill='none' stroke='%23f59e0b' stroke-width='1.5'%3E%3Cpath d='M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3'/%3E%3C/svg%3E") bottom right no-repeat,
+              var(--card-bg) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+.note-card[data-bg="music"] {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.14), rgba(126, 34, 206, 0.04)),
+              url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' opacity='0.15' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='1.5'%3E%3Cpath d='M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm12 0a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E") bottom right no-repeat,
+              var(--card-bg) !important;
+  border-color: rgba(168, 85, 247, 0.35) !important;
+}
+.note-card[data-bg="study"] {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.13), rgba(37, 99, 235, 0.04)),
+              url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' opacity='0.15' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='1.5'%3E%3Cpath d='M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z'/%3E%3C/svg%3E") bottom right no-repeat,
+              var(--card-bg) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+.note-card[data-bg="travel"] {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.13), rgba(14, 116, 144, 0.04)),
+              url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' opacity='0.15' viewBox='0 0 24 24' fill='none' stroke='%2306b6d4' stroke-width='1.5'%3E%3Cpath d='M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E") bottom right no-repeat,
+              var(--card-bg) !important;
+  border-color: rgba(6, 182, 212, 0.35) !important;
+}
+.note-card[data-bg="celebration"] {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.14), rgba(225, 29, 72, 0.04)),
+              url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' opacity='0.15' viewBox='0 0 24 24' fill='none' stroke='%23f43f5e' stroke-width='1.5'%3E%3Cpath d='M5 3v4M3 5h4M6 17v4M4 19h4M13 3l3.5 7h7.5l-6 4.5 2.5 7.5-6.5-4.5-6.5 4.5 2.5-7.5-6-4.5h7.5z'/%3E%3C/svg%3E") bottom right no-repeat,
+              var(--card-bg) !important;
+  border-color: rgba(244, 63, 94, 0.35) !important;
+}
+.note-card[data-bg="night"] {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(67, 56, 202, 0.04)),
+              url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' opacity='0.15' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='1.5'%3E%3Cpath d='M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z'/%3E%3C/svg%3E") bottom right no-repeat,
+              var(--card-bg) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+}
+.note-card.has-custom-bg {
+  background-size: cover !important;
+  background-position: center !important;
+  position: relative;
+  overflow: hidden;
+}
+.note-card.has-custom-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 15, 18, 0.72);
+  backdrop-filter: blur(2px);
+  z-index: 1;
+}
+.note-card.has-custom-bg > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Editor Modal Background Theme preview */
+.modal-card.has-theme-bg {
+  background-size: cover !important;
+  background-position: center !important;
+}

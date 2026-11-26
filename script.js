@@ -272,22 +272,23 @@ class NoteApp {
     this.voiceStream = null;
     this.activeAudio = null;
 
-    // Cloud Sync State
-    this.syncVaultId = localStorage.getItem("offline_notes_sync_vault_id") || null;
-    this.syncCode = localStorage.getItem("offline_notes_sync_code") || null;
-    this.lastSyncedAt = localStorage.getItem("offline_notes_last_synced") || null;
+    // Google Keep Background Theme State
+    this.selectedBg = "none";
+    this.customBgData = null;
+
+    // Automatic Account Cloud Sync State
     this.isSyncing = false;
 
     this.initElements();
     this.initMediaDB();
     this.setupAutoFormatting();
-    this.initCloudSync();
+    this.autoSyncAccount();
     this.initGoogleAuth();
     this.initEvents();
     this.applyTheme(this.currentTheme);
     this.applyLanguage(this.currentLanguage);
     this.updateAuthUI();
-    this.updateSyncUI();
+    
     this.render();
   }
 
@@ -295,7 +296,25 @@ class NoteApp {
   loadCurrentUser() {
     try {
       const data = localStorage.getItem("offline_notes_user");
-      return data ? JSON.parse(data) : null;
+      if (data) {
+        const u = JSON.parse(data);
+        if (u) {
+          if (!u.picture || u.email?.toLowerCase().includes("hamza")) {
+            u.picture = u.picture || "avatar.png";
+          }
+          return u;
+        }
+      }
+      // Default to Hamza Gamal with real profile photo
+      const defaultUser = {
+        id: "hg_owner",
+        name: "Hamza Gamal",
+        email: "thehamzagamal@gmail.com",
+        picture: "avatar.png",
+        provider: "google"
+      };
+      localStorage.setItem("offline_notes_user", JSON.stringify(defaultUser));
+      return defaultUser;
     } catch (e) {
       return null;
     }
@@ -357,9 +376,9 @@ class NoteApp {
     } catch (e) {
       console.error("Failed to save to localStorage:", e);
     }
-    // Auto sync to cloud in background if connected
-    if (this.syncVaultId && !this.isSyncing) {
-      this.syncWithCloud(false);
+    // Auto sync to user's account cloud in background
+    if (this.currentUser && !this.isSyncing) {
+      this.autoSaveToCloud();
     }
   }
 
@@ -488,24 +507,11 @@ class NoteApp {
     this.googleOAuthCancelBtn = document.getElementById("googleOAuthCancelBtn");
     this.googleOAuthConfirmBtn = document.getElementById("googleOAuthConfirmBtn");
 
-    // Cloud Sync & Link Devices Elements
-    this.syncModalBtn = document.getElementById("syncModalBtn");
-    this.syncStatusIcon = document.getElementById("syncStatusIcon");
-    this.syncStatusText = document.getElementById("syncStatusText");
-    this.syncIndicatorDot = document.getElementById("syncIndicatorDot");
-    this.syncModal = document.getElementById("syncModal");
-    this.syncCloseBtn = document.getElementById("syncCloseBtn");
-    this.syncStatusBadge = document.getElementById("syncStatusBadge");
-    this.syncStatusBadgeText = document.getElementById("syncStatusBadgeText");
-    this.syncCodeDisplay = document.getElementById("syncCodeDisplay");
-    this.copySyncCodeBtn = document.getElementById("copySyncCodeBtn");
-    this.syncQrContainer = document.getElementById("syncQrContainer");
-    this.linkDeviceForm = document.getElementById("linkDeviceForm");
-    this.linkCodeInput = document.getElementById("linkCodeInput");
-    this.linkDeviceSubmitBtn = document.getElementById("linkDeviceSubmitBtn");
-    this.manualSyncNowBtn = document.getElementById("manualSyncNowBtn");
-    this.manualSyncIcon = document.getElementById("manualSyncIcon");
-    this.syncLastTime = document.getElementById("syncLastTime");
+    // Google Keep Background Elements
+    this.bgPalette = document.getElementById("bgPalette");
+    this.bgDots = document.querySelectorAll(".bg-dot[data-bg]");
+    this.bgCustomUploadBtn = document.getElementById("bgCustomUploadBtn");
+    this.bgCustomInput = document.getElementById("bgCustomInput");
 
     // Media & Voice Recorder Elements
     this.addPhotoBtn = document.getElementById("addPhotoBtn");
@@ -730,24 +736,32 @@ class NoteApp {
       this.googleOAuthConfirmBtn.addEventListener("click", () => this.handleGoogleConfirm());
     }
 
-    // Cloud Sync Modal Events
-    if (this.syncModalBtn) {
-      this.syncModalBtn.addEventListener("click", () => this.openSyncModal());
-    }
-    if (this.syncCloseBtn) {
-      this.syncCloseBtn.addEventListener("click", () => this.closeSyncModal());
-    }
-    if (this.copySyncCodeBtn) {
-      this.copySyncCodeBtn.addEventListener("click", () => this.copySyncCode());
-    }
-    if (this.linkDeviceForm) {
-      this.linkDeviceForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        this.handleLinkDeviceSubmit();
+    // Google Keep Background Theme Events
+    if (this.bgDots) {
+      this.bgDots.forEach(dot => {
+        dot.addEventListener("click", () => {
+          this.bgDots.forEach(d => d.classList.remove("active"));
+          if (this.bgCustomUploadBtn) this.bgCustomUploadBtn.classList.remove("active");
+          dot.classList.add("active");
+          this.selectedBg = dot.dataset.bg;
+          this.customBgData = null;
+        });
       });
     }
-    if (this.manualSyncNowBtn) {
-      this.manualSyncNowBtn.addEventListener("click", () => this.syncWithCloud(true));
+    if (this.bgCustomUploadBtn && this.bgCustomInput) {
+      this.bgCustomUploadBtn.addEventListener("click", () => this.bgCustomInput.click());
+      this.bgCustomInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          this.selectedBg = "custom";
+          this.customBgData = reader.result;
+          this.bgDots.forEach(d => d.classList.remove("active"));
+          this.bgCustomUploadBtn.classList.add("active");
+        };
+        reader.readAsDataURL(file);
+      });
     }
 
     // Media & Voice Recorder Events
@@ -1131,22 +1145,19 @@ class NoteApp {
     if (!this.authBtn) return;
 
     if (this.currentUser) {
-      const rawName = this.currentUser.name || this.currentUser.email || "User";
-      const initial = rawName.trim().charAt(0).toUpperCase();
-      const firstName = rawName.trim().split(" ")[0];
-      const gradient = this.getAvatarGradient(rawName);
+      const fullName = this.currentUser.name || "Hamza Gamal";
+      const avatarSrc = this.currentUser.picture || "avatar.png";
 
       this.authBtn.innerHTML = `
-        <div class="user-avatar-circle" style="background:${gradient};">${this.escapeHtml(initial)}</div>
-        <span>${this.escapeHtml(firstName)}</span>
+        <img src="${avatarSrc}" class="user-avatar-img" alt="Avatar" onerror="this.src='avatar.png'" />
+        <span>${this.escapeHtml(fullName)}</span>
       `;
       this.authBtn.title = this.currentUser.email;
 
       if (this.dropdownAvatar) {
-        this.dropdownAvatar.textContent = initial;
-        this.dropdownAvatar.style.background = gradient;
+        this.dropdownAvatar.innerHTML = `<img src="${avatarSrc}" class="dropdown-avatar-img" alt="Avatar" onerror="this.src='avatar.png'" />`;
       }
-      if (this.dropdownName) this.dropdownName.textContent = rawName;
+      if (this.dropdownName) this.dropdownName.textContent = fullName;
       if (this.dropdownEmail) this.dropdownEmail.textContent = this.currentUser.email;
       if (this.dropdownBadge) {
         this.dropdownBadge.textContent = this.currentUser.provider === "google"
@@ -1516,6 +1527,16 @@ class NoteApp {
     card.setAttribute("data-color", note.color || "default");
     card.setAttribute("data-id", note.id);
 
+    // Apply Google Keep-style Background Theme
+    if (note.bgImage && note.bgImage !== "none") {
+      if (note.bgImage === "custom" && note.bgCustom) {
+        card.classList.add("has-custom-bg");
+        card.style.backgroundImage = `url("${note.bgCustom}")`;
+      } else {
+        card.setAttribute("data-bg", note.bgImage);
+      }
+    }
+
     // Format date nicely
     const dateObj = new Date(note.updatedAt || note.createdAt);
     const dateString = dateObj.toLocaleDateString(undefined, {
@@ -1740,6 +1761,8 @@ class NoteApp {
       this.isPinned = !!note.pinned;
       this.notePasswordInput.value = note.password || "";
       this.currentAttachments = Array.isArray(note.attachments) ? [...note.attachments] : [];
+      this.selectedBg = note.bgImage || "none";
+      this.customBgData = note.bgCustom || null;
     } else {
       this.noteTitleInput.value = "";
       this.noteContentInput.value = "";
@@ -1749,6 +1772,17 @@ class NoteApp {
       this.isPinned = false;
       this.notePasswordInput.value = "";
       this.currentAttachments = [];
+      this.selectedBg = "none";
+      this.customBgData = null;
+    }
+    // Update active bg dot
+    if (this.bgDots) {
+      this.bgDots.forEach(dot => {
+        dot.classList.toggle("active", dot.dataset.bg === this.selectedBg);
+      });
+    }
+    if (this.bgCustomUploadBtn) {
+      this.bgCustomUploadBtn.classList.toggle("active", this.selectedBg === "custom");
     }
     this.renderEditorAttachments();
 
@@ -1820,6 +1854,8 @@ class NoteApp {
           pinned: this.isPinned,
           password: password || null,
           attachments: this.currentAttachments || [],
+          bgImage: this.selectedBg,
+          bgCustom: this.customBgData,
           updatedAt: now
         };
         // Always ensure protected notes lock immediately on save
@@ -1837,6 +1873,8 @@ class NoteApp {
         pinned: this.isPinned,
         password: password || null,
         attachments: this.currentAttachments || [],
+        bgImage: this.selectedBg,
+        bgCustom: this.customBgData,
         createdAt: now,
         updatedAt: now
       };
@@ -2442,118 +2480,55 @@ class NoteApp {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // FEATURE 3: CROSS-DEVICE CLOUD SYNC & DEVICE LINKING
+  // FEATURE 3: AUTOMATIC ACCOUNT-KEYED CLOUD SYNC (NO MANUAL MODALS)
   // ══════════════════════════════════════════════════════════════
-  initCloudSync() {
-    // Generate syncCode if not present
-    if (!this.syncCode) {
-      this.syncCode = "HG-" + Math.floor(1000 + Math.random() * 9000);
-      localStorage.setItem("offline_notes_sync_code", this.syncCode);
-    }
-
-    // Check if URL has ?sync=... parameter (e.g. from mobile QR code scan)
-    const urlParams = new URLSearchParams(window.location.search);
-    const syncParam = urlParams.get("sync");
-    if (syncParam) {
-      this.linkDevice(syncParam).then(() => {
-        // Clean URL without reload
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
-      });
-    } else if (this.syncVaultId) {
-      // Pull latest changes on startup
-      setTimeout(() => this.syncWithCloud(false), 800);
-    }
+  getAccountVaultKey() {
+    const email = (this.currentUser?.email || "thehamzagamal@gmail.com").toLowerCase().trim();
+    return "note_vault_" + email.replace(/[^a-z0-9]/g, "_");
   }
 
-  updateSyncUI() {
-    if (this.syncCodeDisplay) {
-      this.syncCodeDisplay.textContent = this.syncCode || "HG-8888";
-    }
-    if (this.syncLastTime) {
-      this.syncLastTime.textContent = this.lastSyncedAt 
-        ? `Last synced: ${new Date(this.lastSyncedAt).toLocaleTimeString()}` 
-        : "Not synced yet";
-    }
-    if (this.syncIndicatorDot) {
-      if (this.isSyncing) {
-        this.syncIndicatorDot.className = "sync-indicator-dot syncing";
-      } else if (this.syncVaultId) {
-        this.syncIndicatorDot.className = "sync-indicator-dot";
-      } else {
-        this.syncIndicatorDot.className = "sync-indicator-dot offline";
-      }
-    }
-    this.renderSyncQrCode();
-  }
-
-  renderSyncQrCode() {
-    if (!this.syncQrContainer) return;
-    const targetUrl = `https://hamza-gamal.github.io/note?sync=${encodeURIComponent(this.syncVaultId || this.syncCode)}`;
-    // Clean, high-contrast QR code image via reliable public QR renderer
-    this.syncQrContainer.innerHTML = `
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(targetUrl)}" 
-           alt="Link QR Code" width="150" height="150" style="display:block; border-radius: 8px;" />
-    `;
-  }
-
-  openSyncModal() {
-    this.updateSyncUI();
-    if (this.syncModal) this.syncModal.style.display = "flex";
-  }
-
-  closeSyncModal() {
-    if (this.syncModal) this.syncModal.style.display = "none";
-  }
-
-  copySyncCode() {
-    const code = this.syncCode || "HG-8888";
-    navigator.clipboard.writeText(code).then(() => {
-      this.showToast(this.t("copiedSuccess"));
-    }).catch(() => {
-      this.showToast(code);
-    });
-  }
-
-  async handleLinkDeviceSubmit() {
-    const code = this.linkCodeInput ? this.linkCodeInput.value.trim() : "";
-    if (!code) return;
-    await this.linkDevice(code);
-    if (this.linkCodeInput) this.linkCodeInput.value = "";
-    this.closeSyncModal();
-  }
-
-  async linkDevice(codeOrId) {
-    this.isSyncing = true;
-    this.updateSyncUI();
-    this.showToast("Connecting to device vault...", false);
+  async autoSyncAccount() {
+    if (!this.currentUser) return;
+    const vaultKey = this.getAccountVaultKey();
+    let vaultId = localStorage.getItem("vault_id_" + vaultKey);
 
     try {
-      // Determine if it's an object ID or short HG-code
-      let targetId = codeOrId;
-      let res = await fetch(`https://api.restful-api.dev/objects/${targetId}`);
+      this.isSyncing = true;
+      let res = null;
+      if (vaultId) {
+        res = await fetch(`https://api.restful-api.dev/objects/${vaultId}`);
+      }
 
-      if (!res.ok) {
-        // Fallback: search by query
-        const allRes = await fetch(`https://api.restful-api.dev/objects`);
-        const all = await allRes.json();
-        const found = all.find(item => item.name === "note_vault_" + codeOrId || item.id === codeOrId);
-        if (found) {
-          targetId = found.id;
-          res = await fetch(`https://api.restful-api.dev/objects/${targetId}`);
+      if (!res || !res.ok) {
+        // Search cloud for this user's vault
+        const searchRes = await fetch("https://api.restful-api.dev/objects");
+        if (searchRes.ok) {
+          const list = await searchRes.json();
+          const match = Array.isArray(list) ? list.find(o => o.name === vaultKey) : null;
+          if (match) {
+            vaultId = match.id;
+            localStorage.setItem("vault_id_" + vaultKey, vaultId);
+            res = await fetch(`https://api.restful-api.dev/objects/${vaultId}`);
+          }
         }
       }
 
-      if (res.ok) {
-        const json = await res.json();
-        const cloudData = json.data;
-
+      if (res && res.ok) {
+        const item = await res.json();
+        const cloudData = item.data;
         if (cloudData && Array.isArray(cloudData.notes)) {
-          // Merge notes: keep local newer or unique notes, add missing
+          // Merge local and cloud notes seamlessly
           const localMap = new Map(this.notes.map(n => [n.id, n]));
           cloudData.notes.forEach(remoteNote => {
-            if (!localMap.has(remoteNote.id)) {
+            const local = localMap.get(remoteNote.id);
+            if (!local) {
               localMap.set(remoteNote.id, remoteNote);
+            } else {
+              const localTime = new Date(local.updatedAt || local.createdAt || 0).getTime();
+              const remoteTime = new Date(remoteNote.updatedAt || remoteNote.createdAt || 0).getTime();
+              if (remoteTime > localTime) {
+                localMap.set(remoteNote.id, remoteNote);
+              }
             }
           });
           this.notes = Array.from(localMap.values());
@@ -2561,98 +2536,75 @@ class NoteApp {
             this.categories = Array.from(new Set([...this.categories, ...cloudData.categories]));
             this.saveCategories();
           }
-
-          this.syncVaultId = targetId;
-          this.syncCode = codeOrId.startsWith("HG-") ? codeOrId : this.syncCode;
-          this.lastSyncedAt = new Date().toISOString();
-
-          localStorage.setItem("offline_notes_sync_vault_id", this.syncVaultId);
-          localStorage.setItem("offline_notes_sync_code", this.syncCode);
-          localStorage.setItem("offline_notes_last_synced", this.lastSyncedAt);
-
-          this.saveNotes();
+          localStorage.setItem("offline_notes_data", JSON.stringify(this.notes));
+          localStorage.setItem("offline_notes_permanent_vault", JSON.stringify(this.notes));
           this.render();
-          this.showToast(this.t("syncLinked"));
         }
       } else {
-        this.showToast("Cloud vault not found. Check the code.");
+        // Vault doesn't exist on cloud yet, create it!
+        await this.autoSaveToCloud();
       }
     } catch (err) {
-      console.warn("Device link error:", err);
-      this.showToast(this.t("syncError"));
+      console.warn("Silent account sync notice:", err);
     } finally {
       this.isSyncing = false;
-      this.updateSyncUI();
     }
   }
 
-  async syncWithCloud(isManual = false) {
-    if (this.isSyncing) return;
-    this.isSyncing = true;
-    this.updateSyncUI();
+  async autoSaveToCloud() {
+    if (!this.currentUser) return;
+    const vaultKey = this.getAccountVaultKey();
+    let vaultId = localStorage.getItem("vault_id_" + vaultKey);
 
-    if (this.manualSyncIcon) this.manualSyncIcon.classList.add("fa-spin");
+    const payload = {
+      notes: this.notes.map(n => ({
+        ...n,
+        // Keep note text, category, color, bgImage, and light attachments
+        attachments: (n.attachments || []).map(a => ({
+          id: a.id,
+          type: a.type,
+          name: a.name,
+          size: a.size,
+          duration: a.duration,
+          dataUrl: a.dataUrl && a.dataUrl.length < 300000 ? a.dataUrl : ""
+        }))
+      })),
+      categories: this.categories,
+      updatedAt: Date.now()
+    };
 
     try {
-      const payload = {
-        notes: this.notes.map(n => ({
-          ...n,
-          // Exclude huge blobs from cloud JSON if needed
-          attachments: (n.attachments || []).map(a => ({
-            id: a.id,
-            type: a.type,
-            name: a.name,
-            size: a.size,
-            duration: a.duration,
-            dataUrl: a.dataUrl && a.dataUrl.length < 500000 ? a.dataUrl : ""
-          }))
-        })),
-        categories: this.categories,
-        updatedAt: Date.now()
-      };
-
-      if (!this.syncVaultId) {
-        // Create new vault
-        const res = await fetch("https://api.restful-api.dev/objects", {
+      if (!vaultId) {
+        const postRes = await fetch("https://api.restful-api.dev/objects", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: "note_vault_" + this.syncCode,
-            data: payload
-          })
+          body: JSON.stringify({ name: vaultKey, data: payload })
         });
-        if (res.ok) {
-          const json = await res.json();
-          this.syncVaultId = json.id;
-          localStorage.setItem("offline_notes_sync_vault_id", this.syncVaultId);
+        if (postRes.ok) {
+          const json = await postRes.json();
+          localStorage.setItem("vault_id_" + vaultKey, json.id);
         }
       } else {
-        // Update existing vault
-        await fetch(`https://api.restful-api.dev/objects/${this.syncVaultId}`, {
+        await fetch(`https://api.restful-api.dev/objects/${vaultId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: "note_vault_" + this.syncCode,
-            data: payload
-          })
+          body: JSON.stringify({ name: vaultKey, data: payload })
         });
       }
-
-      this.lastSyncedAt = new Date().toISOString();
-      localStorage.setItem("offline_notes_last_synced", this.lastSyncedAt);
-
-      if (isManual) {
-        this.showToast(this.t("syncSuccess"));
-      }
-    } catch (err) {
-      console.warn("Cloud sync error:", err);
-      if (isManual) this.showToast(this.t("syncError"));
-    } finally {
-      this.isSyncing = false;
-      if (this.manualSyncIcon) this.manualSyncIcon.classList.remove("fa-spin");
-      this.updateSyncUI();
+    } catch (e) {
+      console.warn("Silent auto save notice:", e);
     }
   }
+
+  // Obsolete helper stubs kept safe
+  initCloudSync() {}
+  updateSyncUI() {}
+  openSyncModal() {}
+  closeSyncModal() {}
+  syncWithCloud() { return this.autoSaveToCloud(); }
+  copySyncCode() {}
+  handleLinkDeviceSubmit() {}
+  linkDevice() {}
 
 }
 

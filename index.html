@@ -139,13 +139,6 @@
             <i class="fa-solid fa-house"></i>
           </a>
 
-          <!-- Cloud Sync & Link Devices Pill -->
-          <button id="syncModalBtn" class="topbar-btn sync-btn" title="Cloud Sync & Link Devices / مزامنة السحابة وربط الأجهزة">
-            <i class="fa-solid fa-cloud" id="syncStatusIcon"></i>
-            <span id="syncStatusText" data-i18n="cloudSync">Cloud Sync</span>
-            <span class="sync-indicator-dot" id="syncIndicatorDot"></span>
-          </button>
-
           <!-- Sign In / User Profile Pill -->
           <div class="user-auth-wrap">
             <button id="authBtn" class="topbar-btn auth-btn" title="Sign In / تسجيل الدخول">
@@ -156,11 +149,13 @@
             <!-- User Profile Dropdown Menu -->
             <div id="userProfileDropdown" class="user-profile-dropdown" style="display: none;">
               <div class="user-dropdown-header">
-                <div class="user-dropdown-avatar" id="dropdownAvatar">U</div>
+                <div class="user-dropdown-avatar" id="dropdownAvatar">
+                  <img id="dropdownAvatarImg" src="avatar.png" alt="Avatar" />
+                </div>
                 <div class="user-dropdown-info">
-                  <div class="user-dropdown-name" id="dropdownName">User</div>
-                  <div class="user-dropdown-email" id="dropdownEmail">user@example.com</div>
-                  <span class="user-dropdown-badge" id="dropdownBadge">Google</span>
+                  <div class="user-dropdown-name" id="dropdownName">Hamza Gamal</div>
+                  <div class="user-dropdown-email" id="dropdownEmail">thehamzagamal@gmail.com</div>
+                  <span class="user-dropdown-badge" id="dropdownBadge">Google Account</span>
                 </div>
               </div>
               <div class="user-dropdown-divider"></div>
@@ -252,6 +247,25 @@
             <button type="button" class="color-dot" data-color="cyan" style="background: #06b6d4;" title="Cyan"></button>
             <button type="button" class="color-dot" data-color="indigo" style="background: #6366f1;" title="Indigo"></button>
             <button type="button" class="color-dot" data-color="purple" style="background: #a855f7;" title="Purple"></button>
+          </div>
+        </div>
+
+        <!-- Google Keep-style Note Background Themes -->
+        <div class="meta-field bg-meta-field">
+          <label><i class="fa-regular fa-image"></i> <span data-i18n="bgTheme">Background</span>:</label>
+          <div class="bg-palette" id="bgPalette">
+            <button type="button" class="bg-dot active" data-bg="none" title="Default / بدون خلفية"><i class="fa-solid fa-ban"></i></button>
+            <button type="button" class="bg-dot" data-bg="groceries" title="Groceries / مشتريات">🛒</button>
+            <button type="button" class="bg-dot" data-bg="food" title="Food / طبخ ووصفات">🍳</button>
+            <button type="button" class="bg-dot" data-bg="music" title="Music / موسيقى">🎧</button>
+            <button type="button" class="bg-dot" data-bg="study" title="Study & Notes / دراسة">📚</button>
+            <button type="button" class="bg-dot" data-bg="travel" title="Places & Travel / سفر">✈️</button>
+            <button type="button" class="bg-dot" data-bg="celebration" title="Celebration / مناسبات">🎉</button>
+            <button type="button" class="bg-dot" data-bg="night" title="Night / هدوء">🌙</button>
+            <button type="button" class="bg-dot bg-custom-btn" id="bgCustomUploadBtn" title="Custom Photo / صورة من جهازك">
+              <i class="fa-solid fa-arrow-up-from-bracket"></i>
+            </button>
+            <input type="file" id="bgCustomInput" accept="image/*" style="display:none;" />
           </div>
         </div>
 
@@ -544,75 +558,6 @@
       <div class="google-oauth-actions">
         <button type="button" id="googleOAuthCancelBtn" class="google-oauth-btn-cancel" data-i18n="cancelBtn">Cancel</button>
         <button type="button" id="googleOAuthConfirmBtn" class="google-oauth-btn-confirm" data-i18n="googleContinueBtn">Continue</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Cloud Sync & Link Devices Modal (Cross-device phone & laptop sync) ── -->
-  <div id="syncModal" class="custom-modal-backdrop" style="display: none;">
-    <div class="sync-modal-card">
-      <button id="syncCloseBtn" class="auth-close-x" title="Close">&times;</button>
-      
-      <div class="sync-header">
-        <div class="sync-brand-icon">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-        </div>
-        <h2 class="sync-title" data-i18n="syncModalTitle">Cloud Sync & Link Devices</h2>
-        <p class="sync-subtitle" data-i18n="syncModalSubtitle">Keep your notes seamlessly synced across mobile, laptop, and all your devices.</p>
-      </div>
-
-      <!-- Sync Status Pill -->
-      <div class="sync-status-badge" id="syncStatusBadge">
-        <span class="status-indicator"></span>
-        <span id="syncStatusBadgeText">Auto-sync active</span>
-      </div>
-
-      <!-- Device Pairing Code Box -->
-      <div class="sync-code-box">
-        <div class="sync-code-label" data-i18n="yourSyncCode">Your Device Link Code:</div>
-        <div class="sync-code-row">
-          <div class="sync-code-display" id="syncCodeDisplay">------</div>
-          <button type="button" class="sync-action-btn" id="copySyncCodeBtn" title="Copy code">
-            <i class="fa-regular fa-copy"></i>
-            <span data-i18n="copy">Copy</span>
-          </button>
-        </div>
-        <p class="sync-hint" data-i18n="syncCodeHint">Enter this code on your phone or other device to link them instantly.</p>
-      </div>
-
-      <!-- QR Code for Instant Mobile Link -->
-      <div class="sync-qr-section">
-        <div class="sync-qr-container" id="syncQrContainer">
-          <!-- Live QR code will be generated here -->
-        </div>
-        <p class="sync-qr-note" data-i18n="syncQrHint">Scan with your phone camera to open and sync all your notes on mobile instantly!</p>
-      </div>
-
-      <div class="auth-divider">
-        <span data-i18n="orLinkOther">or link with another device</span>
-      </div>
-
-      <!-- Enter Code from Another Device -->
-      <form id="linkDeviceForm" class="link-device-form" onsubmit="return false;">
-        <div class="form-group">
-          <label class="form-label" data-i18n="enterCodeFromOther">Enter Sync Code from your other device:</label>
-          <div class="link-input-group">
-            <input type="text" id="linkCodeInput" class="form-input sync-input" placeholder="e.g. HG-8924 or Cloud Vault ID" autocomplete="off" />
-            <button type="submit" id="linkDeviceSubmitBtn" class="btn btn-primary">
-              <i class="fa-solid fa-link"></i>
-              <span data-i18n="linkBtn">Link</span>
-            </button>
-          </div>
-        </div>
-      </form>
-
-      <!-- Sync Controls & Last Synced Timestamp -->
-      <div class="sync-footer-actions">
-        <button type="button" id="manualSyncNowBtn" class="btn btn-secondary btn-block">
-          <i class="fa-solid fa-arrows-rotate" id="manualSyncIcon"></i>
-          <span data-i18n="syncNow">Sync Now</span>
-        </button>
-        <div class="sync-last-time" id="syncLastTime">Last synced: Just now</div>
       </div>
     </div>
   </div>
