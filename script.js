@@ -339,7 +339,9 @@ class NoteApp {
       if (!data) {
         data = localStorage.getItem("offline_notes_permanent_vault");
       }
-      const list = data ? JSON.parse(data) : [];
+      let list = data ? JSON.parse(data) : [];
+      // Clean out any test dummy notes
+      list = list.filter(n => n.id !== "n1" && n.title !== "Hamza important note");
       // Ensure all password protected notes are locked on startup
       list.forEach(n => {
         delete n._unlocked;
@@ -629,11 +631,14 @@ class NoteApp {
     this.noteContentInput.addEventListener("input", () => this.updateTextStats());
 
     // Password Visibility Toggle in Editor
-    this.togglePwdVisibilityBtn.addEventListener("click", () => {
-      const isPwd = this.notePasswordInput.type === "password";
-      this.notePasswordInput.type = isPwd ? "text" : "password";
-      this.togglePwdVisibilityBtn.querySelector("i").className = isPwd ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
-    });
+    if (this.togglePwdVisibilityBtn && this.notePasswordInput) {
+      this.togglePwdVisibilityBtn.addEventListener("click", () => {
+        const isPwd = this.notePasswordInput.type === "password";
+        this.notePasswordInput.type = isPwd ? "text" : "password";
+        const icon = this.togglePwdVisibilityBtn.querySelector("i");
+        if (icon) icon.className = isPwd ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
+      });
+    }
 
     // Unlock Modal Events
     this.unlockCancelBtn.addEventListener("click", () => this.closeUnlockModal());
@@ -755,13 +760,16 @@ class NoteApp {
       this.togglePasswordBarBtn.addEventListener("click", () => {
         const isHidden = this.notePasswordInput.style.display === "none";
         this.notePasswordInput.style.display = isHidden ? "inline-block" : "none";
+        if (this.togglePwdVisibilityBtn) {
+          this.togglePwdVisibilityBtn.style.display = isHidden ? "inline-block" : "none";
+        }
         if (isHidden) this.notePasswordInput.focus();
       });
     }
 
     if (this.changeAvatarBtn && this.userAvatarFileInput) {
       this.changeAvatarBtn.addEventListener("click", () => this.userAvatarFileInput.click());
-      this.userAvatarFileInput.addEventListener("change", (e) => {
+      if (this.userAvatarFileInput) this.userAvatarFileInput.addEventListener("change", (e) => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
@@ -780,7 +788,7 @@ class NoteApp {
 
     if (this.bgCustomUploadBtn && this.bgCustomInput) {
       this.bgCustomUploadBtn.addEventListener("click", () => this.bgCustomInput.click());
-      this.bgCustomInput.addEventListener("change", (e) => {
+      if (this.bgCustomInput) this.bgCustomInput.addEventListener("change", (e) => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
@@ -797,15 +805,15 @@ class NoteApp {
     // Media & Voice Recorder Events
     if (this.addPhotoBtn && this.mediaPhotoInput) {
       this.addPhotoBtn.addEventListener("click", () => this.mediaPhotoInput.click());
-      this.mediaPhotoInput.addEventListener("change", (e) => this.handleMediaInputChange(e, "image"));
+      if (this.mediaPhotoInput) this.mediaPhotoInput.addEventListener("change", (e) => this.handleMediaInputChange(e, "image"));
     }
     if (this.addVideoBtn && this.mediaVideoInput) {
       this.addVideoBtn.addEventListener("click", () => this.mediaVideoInput.click());
-      this.mediaVideoInput.addEventListener("change", (e) => this.handleMediaInputChange(e, "video"));
+      if (this.mediaVideoInput) this.mediaVideoInput.addEventListener("change", (e) => this.handleMediaInputChange(e, "video"));
     }
     if (this.addFileBtn && this.mediaFileInput) {
       this.addFileBtn.addEventListener("click", () => this.mediaFileInput.click());
-      this.mediaFileInput.addEventListener("change", (e) => this.handleMediaInputChange(e, "file"));
+      if (this.mediaFileInput) this.mediaFileInput.addEventListener("change", (e) => this.handleMediaInputChange(e, "file"));
     }
     if (this.recordVoiceBtn) {
       this.recordVoiceBtn.addEventListener("click", () => this.startVoiceRecording());
@@ -1777,8 +1785,15 @@ class NoteApp {
     this.editingNoteId = noteId;
 
     // Reset password field to password type
-    this.notePasswordInput.type = "password";
-    this.togglePwdVisibilityBtn.querySelector("i").className = "fa-regular fa-eye";
+    if (this.notePasswordInput) {
+      this.notePasswordInput.type = "password";
+      this.notePasswordInput.style.display = "none";
+    }
+    if (this.togglePwdVisibilityBtn) {
+      this.togglePwdVisibilityBtn.style.display = "none";
+      const icon = this.togglePwdVisibilityBtn.querySelector("i");
+      if (icon) icon.className = "fa-regular fa-eye";
+    }
 
     if (noteId) {
       const note = this.notes.find(n => n.id === noteId);

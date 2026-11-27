@@ -277,11 +277,13 @@
 
           <button type="button" class="tool-btn" id="addFileBtn" title="Attach File / إرفاق ملف"><i class="fa-solid fa-paperclip"></i></button>
           <input type="file" id="mediaFileInput" style="display:none;" />
+          <input type="file" id="mediaVideoInput" accept="video/*" style="display:none;" />
 
           <!-- Password Protect -->
           <div class="password-pop-wrap">
             <button type="button" class="tool-btn" id="togglePasswordBarBtn" title="Lock Note"><i class="fa-solid fa-lock"></i></button>
             <input type="password" id="notePasswordInput" class="compact-pwd-input" placeholder="Password..." style="display:none;" />
+            <button type="button" class="tool-btn" id="togglePwdVisibilityBtn" title="Toggle visibility" style="display:none;"><i class="fa-regular fa-eye"></i></button>
           </div>
         </div>
       </div>
